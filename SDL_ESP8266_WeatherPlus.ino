@@ -11,7 +11,9 @@
 
 
 
-#define WEATHERPLUSESP8266VERSION "015"
+
+
+#define WEATHERPLUSESP8266VERSION "016"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 #undef DEBUGPRINT
@@ -36,6 +38,7 @@ extern "C" {
 //needed for library
 #include <DNSServer.h>
 #include <ESP8266WebServer.h>
+
 
 
 #include "WiFiManager.h"          //https://github.com/tzapu/WiFiManager
@@ -355,6 +358,13 @@ byte FirstBadReply[10];
 
 
 void setup() {
+
+
+  // WiFi reset loop fix - erase the WiFi saved area
+
+  WiFi.persistent(false);
+
+  
 #ifdef DEBUGPRINT
   AM2315BadCount = -1;
   AM2315TotalCount = 0;

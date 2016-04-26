@@ -168,6 +168,7 @@ boolean WiFiManager::autoConnect(char const *apName, char const *apPassword) {
   if ((Wssid.length() == 0) || (Wssid == "XXX"))
   {
     DEBUG_WM(F("No Valid SSID"));
+    //WiFi.mode(WIFI_STA);
     WiFi.disconnect();
   }
   else
@@ -178,7 +179,7 @@ boolean WiFiManager::autoConnect(char const *apName, char const *apPassword) {
   }
 
  //   if (connectWifi("", "") == WL_CONNECTED)   {
-
+  DEBUG_WM(F("Past the disconnect"));
 
   if (connectWifi(Wssid.c_str(), WPassword.c_str()) == WL_CONNECTED)   {
     DEBUG_WM(F("IP Address:"));

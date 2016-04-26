@@ -6,6 +6,10 @@ Arduino IDE software designed for the ESP8266 on the WeatherPlus Board and the O
 www.switchdoc.com
 April 2016
 
+Current Version 016 - April 26, 2016
+
+- Fixed infinite reboot sequence with WiFi FLASH corruption (timing of reset button) 
+
 Current Version 015 - April 17, 2016
 
 - Added full support for Air Quality Sensor Extender Kit
