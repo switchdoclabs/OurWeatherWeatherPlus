@@ -1,20 +1,15 @@
 /***************************************************
   This is a library for the AM2315 Humidity & Temp Sensor
-
   Designed specifically to work with the AM2315 sensor from Adafruit
   ----> https://www.adafruit.com/products/1293
-
   These displays use I2C to communicate, 2 pins are required to
   interface
   Adafruit invests time and resources providing this open source code,
   please support Adafruit and open-source hardware by purchasing
   products from Adafruit!
-
   Written by Limor Fried/Ladyada for Adafruit Industries.
-
   Additional improvements added by Daniel Sandoval/EasternStarGeek
   8 July, 2013.  (Parent Library: Adafruit_AM2315)
-
   BSD license, all text above must be included in any redistribution
  ****************************************************/
 extern long AM2315BadCount;
@@ -24,16 +19,16 @@ extern unsigned char FirstBadReply[10];
 
 #endif
 
-#include "ESG_AM2315.h"
+#include "SDL_ESP8266_HR_AM2315.h"
 //#include <util/delay.h>
 
-ESG_AM2315::ESG_AM2315() {
+SDL_ESP8266_HR_AM2315::SDL_ESP8266_HR_AM2315() {
 }
 int delayByCPU(long delaycount);
 
 int I2C_ClearBus();
 
-boolean ESG_AM2315::readData(float *dataArray) {
+boolean SDL_ESP8266_HR_AM2315::readData(float *dataArray) {
   uint8_t reply[10];
 
 
@@ -42,18 +37,14 @@ boolean ESG_AM2315::readData(float *dataArray) {
   noInterrupts();
   ETS_INTR_LOCK();
 
+  //Wire.begin(4, 5);   // some ESP8266 devices require 5, 4 instead of 4,5
   Wire.begin(5, 4);   // some ESP8266 devices require 5, 4 instead of 4,5
 
   Wire.setClock(400000L);
 
-  //Wire.beginTransmission(AM2315_I2CADDR);
-  //delay(3);
-  //Wire.endTransmission();
-
+  
   Wire.beginTransmission(AM2315_I2CADDR);
   Wire.write(AM2315_READREG);
-  //Wire.write(0x00);  // start at address 0x0
-  //Wire.write(4);  // request 4 bytes data
   Wire.endTransmission();
 
   //delay(50);
@@ -61,15 +52,12 @@ boolean ESG_AM2315::readData(float *dataArray) {
 
 
 
-  // for reasons unknown we have to send the data twice :/
-  // whats the bug here?
   Wire.beginTransmission(AM2315_I2CADDR);
   Wire.write(AM2315_READREG);
   Wire.write(0x00);  // start at address 0x0
   Wire.write(4);  // request 4 bytes data
   Wire.endTransmission();
 
-  //delay(50);
   delayByCPU(50);
 
   Wire.requestFrom(AM2315_I2CADDR, 8);
@@ -81,8 +69,7 @@ boolean ESG_AM2315::readData(float *dataArray) {
 
   interrupts();
   ETS_UART_INTR_ENABLE();
-  //ETS_INTR_UNLOCK();
-
+  
   yield();
 
 

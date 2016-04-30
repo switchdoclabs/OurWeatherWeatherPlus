@@ -6,6 +6,10 @@ Arduino IDE software designed for the ESP8266 on the WeatherPlus Board and the O
 www.switchdoc.com
 April 2016
 
+Current Version 016 - April 30, 2016
+
+- No functional change.  Renamed ESG_AM2315 files to avoid library class conflicts and match Github archive
+
 Current Version 016 - April 26, 2016
 
 - Fixed infinite reboot sequence with WiFi FLASH corruption (timing of reset button) 

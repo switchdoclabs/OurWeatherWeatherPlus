@@ -182,10 +182,10 @@ RtcDS3231 Rtc;
 float AM2315_Temperature;
 float AM2315_Humidity;
 
-#include "ESG_AM2315.h"
+#include "SDL_ESP8266_HR_AM2315.h"
 
 
-ESG_AM2315 am2315;
+SDL_ESP8266_HR_AM2315 am2315;
 float dataAM2315[2];  //Array to hold data returned by sensor.  [0,1] => [Humidity, Temperature]
 
 
