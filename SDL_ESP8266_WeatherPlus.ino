@@ -27,6 +27,7 @@ __asm volatile ("nop");
 
 #pragma GCC diagnostic ignored "-Wwrite-strings"
 
+#include <stddef.h>
 extern "C" {
 #include "user_interface.h"
 }
