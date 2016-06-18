@@ -10,13 +10,14 @@
 //
 
 
-
-
-
-#define WEATHERPLUSESP8266VERSION "016"
+#define WEATHERPLUSESP8266VERSION "017"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 #undef DEBUGPRINT
+
+
+// Change this to undef if you don't have the OLED present
+#define OLED_Present
 
 // BOF preprocessor bug prevent - insert on top of your arduino-code
 #if 1
@@ -338,10 +339,12 @@ char bubbleStatus[40];   // What to send to the Bubble status
 #define min(a,b) ((a)<(b)?(a):(b))
 
 #define OLED_RESET 4
+
+
+
 ESP_SSD1306 display(OLED_RESET);
 
 #include "OLEDDisplay.h"
-
 
 
 
@@ -445,8 +448,10 @@ void setup() {
 
   EEPROM.begin(512);
 
+#ifdef OLED_Present
   OLEDDisplaySetup();
   updateDisplay(DISPLAY_POWERUP);
+#endif
 
   delay(2000);
 

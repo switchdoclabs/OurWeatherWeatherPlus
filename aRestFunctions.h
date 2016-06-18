@@ -150,17 +150,26 @@ int setDateTime(String command)
   Serial.println(_date);
   Serial.println(_time);
 
-  if ((_time.length() > 0) && (_date.length() > 0))
+  if (_password == adminPassword)
   {
-    RtcDateTime compiled = RtcDateTime(_date.c_str(), _time.c_str());
-    Serial.println("Updating DateTime in RTC");
-    Serial.println(compiled);
-    Rtc.SetDateTime(compiled);
+    if ((_time.length() > 0) && (_date.length() > 0))
+    {
+      RtcDateTime compiled = RtcDateTime(_date.c_str(), _time.c_str());
+      Serial.println("Updating DateTime in RTC");
+      Serial.println(compiled);
+      Rtc.SetDateTime(compiled);
+    }
+    else
+    {
+      Serial.println("Not updating DateTime in RTC");
+      return 2;
+    }
+    return 1;
   }
   else
-    Serial.println("Not updating DateTime in RTC");
-  return 1;
+    return 0;
 }
+
 
 
 // FOTA update commands

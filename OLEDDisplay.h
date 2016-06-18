@@ -23,6 +23,7 @@ char displayLines[18][21];
 void updateDisplay(int displayMode)
 {
 
+#ifdef OLED_Present
 
   char buffer[40];
   char returnString[200];
@@ -792,7 +793,7 @@ void updateDisplay(int displayMode)
   writeAllDisplayLines(displayMode);
 
 
-
+#endif
 
 }
 
