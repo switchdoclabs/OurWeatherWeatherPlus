@@ -871,7 +871,7 @@ void ESP_SSD1306::drawFastVLine(int16_t x, int16_t y, int16_t h, uint16_t color)
     case 0:
       break;
     case 1:
-      // 90 degree rotation, swap x & y for rotation, then invert x and adjust x for h (now to become w)
+      // 90 degree rotation, swap x & y for rotation, then invert x and adjust x for h (to become w)
       bSwap = true;
       adagfxswap(x, y);
       x = WIDTH - x - 1;

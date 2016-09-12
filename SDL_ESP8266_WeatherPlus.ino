@@ -1,5 +1,5 @@
 // Filename WeatherPlus.ino
-// Version 1.15 april 16, 2016
+// Version 1.18 September 2016
 // SwitchDoc Labs, LLC
 //
 
@@ -10,13 +10,13 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "017"
+#define WEATHERPLUSESP8266VERSION "018"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 #undef DEBUGPRINT
 
 
-// Change this to undef if you don't have the OLED present
+// Change this to undef if you don't have the OLED present0
 #define OLED_Present
 
 // BOF preprocessor bug prevent - insert on top of your arduino-code
@@ -127,6 +127,8 @@ String WPassword;
 
 WiFiServer server(WEB_SERVER_PORT);
 
+
+
 //----------------------------------------------------------------------
 
 
@@ -146,7 +148,7 @@ aREST rest = aREST();
 
 elapsedMillis timeElapsed; //declare global if you don't want it reset every time loop
 
-
+elapsedMillis timeElapsed300Seconds; //declare global if you don't want it reset every time loop
 
 // BMP180 / BMP280 Sensor
 // Both are stored in BMP180 variables
@@ -207,6 +209,12 @@ String adminPassword;
 
 int heapSize;
 
+// WeatherUnderground
+
+String WeatherUnderground_StationID;
+String WeatherUnderground_StationKey;
+
+
 
 // WeatherRack
 
@@ -225,6 +233,12 @@ float currentWindGust;
 float currentWindDirection;
 
 float rainTotal;
+
+
+float rainCalendarDay;
+int lastDay;
+
+float startOfDayRain;
 
 #include "SDL_RasPiGraphLibrary.h"
 // setup the RasPiConnect Graph Arrays
@@ -310,6 +324,10 @@ char ST1Text[40];   // used in ST-1 Send text control
 char bubbleStatus[40];   // What to send to the Bubble status
 
 
+#include "RainFunctions.h"
+
+float lastRain;
+#include "WeatherUnderground.h"
 
 
 #include "Utils.h"
@@ -360,6 +378,7 @@ byte FirstBadReply[10];
 #endif
 
 
+RtcDateTime lastBoot;
 void setup() {
 
 
@@ -367,7 +386,7 @@ void setup() {
 
   WiFi.persistent(false);
 
-  
+
 #ifdef DEBUGPRINT
   AM2315BadCount = -1;
   AM2315TotalCount = 0;
@@ -379,6 +398,11 @@ void setup() {
   BMP180Found = false;
   BMP280Found = false;
   stationName = "";
+
+
+
+  WeatherUnderground_StationID = "XXXX";
+  WeatherUnderground_StationKey = "YYYY";
 
   adminPassword = "admin";
   altitude_meters = 637.0;  // default to 611
@@ -419,6 +443,13 @@ void setup() {
   }
 
   RtcDateTime now = Rtc.GetDateTime();
+
+  lastBoot = now;
+
+  rainCalendarDay = 0.0;
+  startOfDayRain = 0.0;
+
+  lastDay = now.Day();
 
   String currentTimeString;
   currentTimeString = returnDateTime(now);
@@ -575,6 +606,10 @@ void setup() {
   rest.function("led", ledControl);
   rest.function("setID", setWeatherPlusIDControl);
   rest.function("resetOurWeather",   resetOurWeather);
+
+  rest.function("setWUSID",   setWUSID);
+  rest.function("setWUKEY",   setWUKEY);
+
   rest.function("setAdminPassword",   setAdminPassword);
   //rest.function("rebootOurWeather",   rebootOurWeather);
   rest.function("setDateTime",   setDateTime);
@@ -609,7 +644,7 @@ void setup() {
 
 
 
-
+  initialize60MinuteRain();
 
 
 
@@ -660,6 +695,8 @@ void setup() {
 
 
   randomSeed(analogRead(0));
+
+  lastBoot = Rtc.GetDateTime();
 
 
 
@@ -773,7 +810,7 @@ void loop() {
 
     }
   }
-
+  client.stop();
 
 
 
@@ -781,6 +818,11 @@ void loop() {
   if (timeElapsed > 5000)
   {
     Serial.println("5 second Loop executed");
+
+
+
+
+
 
     timeElapsed = 0;
 
@@ -844,7 +886,6 @@ void loop() {
 
     RestDataString += String(AM2315_Temperature, 2) + ",";
     RestDataString += String(AM2315_Humidity, 2) + ",";
-
 
     Serial.println("---------------");
     if (BMP180Found)
@@ -911,6 +952,8 @@ void loop() {
       Serial.println(" m");
 
     }
+
+
 
     if (BMP280Found)
     {
@@ -1113,11 +1156,51 @@ void loop() {
     RestDataString += String(currentAirQualitySensor) + ",";
     RestDataString += String(currentAirQuality);
 
+    if (timeElapsed300Seconds > 300000)
+    {
+
+
+      String lastBootTimeString;
+      lastBootTimeString = returnDateTime(lastBoot);
+
+      Serial.print("lastBoot = ");
+      Serial.println(lastBootTimeString);
+      
+      timeElapsed300Seconds = 0;
+
+      // update rain
+
+
+      add60MinuteRainReading(rainTotal - lastRain);
+      lastRain = rainTotal;
+
+      RtcDateTime now = Rtc.GetDateTime();
+
+      if (now.Day() == lastDay)
+      {
+        rainCalendarDay = rainTotal - startOfDayRain;
+
+      }
+      else
+      {
+        lastDay = now.Day();
+        rainCalendarDay = 0.0;
+        startOfDayRain = rainTotal;
+      }
+
+      Serial.println("Attempting to send data to WeatherUnderground");
+
+
+      sendWeatherUndergroundData();
+    }
 
     updateDisplay(WeatherDisplayMode);
-
+    Serial.println("OutOfDisplay");
 
   }
+
+
+
   yield();
 
 }

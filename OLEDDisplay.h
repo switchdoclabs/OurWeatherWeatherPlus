@@ -15,7 +15,7 @@
 void setDisplayLine(int lineNumber, char *value);
 void writeAllDisplayLines(int DisplayMode);
 
-char displayLines[18][21];
+char displayLines[20][28];
 
 
 // WeatherPlus Text Buffer Lines
@@ -340,7 +340,7 @@ void updateDisplay(int displayMode)
           setDisplayLine(1, buffer);
 
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           strcat(buffer, "IT: ");
           dtostrf(BMP180_Temperature * 1.8 + 32.0, 4, 1, floatString);
@@ -356,7 +356,7 @@ void updateDisplay(int displayMode)
           setDisplayLine(3, buffer);
 
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           strcat(buffer, "RT: ");
           dtostrf(rainTotal * 0.039370, 5, 2, floatString);
@@ -379,7 +379,7 @@ void updateDisplay(int displayMode)
           setDisplayLine(6, buffer);
 
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           strcat(buffer, "WD:");
           windDirection = returnDirectionFromDegrees(int(currentWindDirection));
@@ -422,7 +422,7 @@ void updateDisplay(int displayMode)
           setDisplayLine(1, buffer);
 
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           strcat(buffer, "IT: ");
           dtostrf(BMP180_Temperature, 5, 1, floatString);
@@ -438,7 +438,7 @@ void updateDisplay(int displayMode)
           setDisplayLine(3, buffer);
 
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           strcat(buffer, "RT:");
           dtostrf(rainTotal, 5, 1, floatString);
@@ -462,7 +462,7 @@ void updateDisplay(int displayMode)
           setDisplayLine(6, buffer);
 
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           strcat(buffer, "WD:");
           windDirection = returnDirectionFromDegrees(int(currentWindDirection));
@@ -516,7 +516,7 @@ void updateDisplay(int displayMode)
           strcat(buffer, "%");
           setDisplayLine(3, buffer);
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           setDisplayLine(4,  "InTmp");
           dtostrf(BMP180_Temperature * 1.8 + 32.0, 5, 1, floatString);
@@ -531,7 +531,7 @@ void updateDisplay(int displayMode)
           strcat(buffer, "in");
           setDisplayLine(7, buffer);
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           setDisplayLine(8, "RnTot");
           dtostrf(rainTotal * 0.039370, 5, 2, floatString);
@@ -553,7 +553,7 @@ void updateDisplay(int displayMode)
           strcat(buffer, "mph");
           setDisplayLine(13, buffer);
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           setDisplayLine(14,  "WndDr");
           windDirection = returnDirectionFromDegrees(int(currentWindDirection));
@@ -595,7 +595,7 @@ void updateDisplay(int displayMode)
           strcat(buffer, "%");
           setDisplayLine(3, buffer);
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           setDisplayLine(4, "InTmp");
           dtostrf(BMP180_Temperature, 5, 1, floatString);
@@ -611,7 +611,7 @@ void updateDisplay(int displayMode)
           setDisplayLine(7, buffer);
 
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           setDisplayLine(8, "RnTot");
           dtostrf(rainTotal, 5, 1, floatString);
@@ -634,7 +634,7 @@ void updateDisplay(int displayMode)
           setDisplayLine(13, buffer);
 
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           setDisplayLine(14, "WndDr");
           windDirection = returnDirectionFromDegrees(int(currentWindDirection));

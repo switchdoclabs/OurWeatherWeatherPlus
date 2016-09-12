@@ -121,7 +121,7 @@ float voltageToDegrees(float value, float defaultWindDirection)
 unsigned long lastWindTime;
 
 
-void serviceInterruptAnem()
+void ICACHE_RAM_ATTR serviceInterruptAnem()
 {
   unsigned long currentTime = (unsigned long)(micros() - lastWindTime);
 
@@ -144,7 +144,7 @@ void serviceInterruptAnem()
 unsigned long currentRainMin;
 unsigned long lastRainTime;
 
-void serviceInterruptRain()
+void ICACHE_RAM_ATTR serviceInterruptRain()
 {
   unsigned long currentTime = (unsigned long) (micros() - lastRainTime);
 

@@ -27,8 +27,8 @@
 #include "OWMAdafruit_ADS1015.h"
 
 
-extern "C" void serviceInterruptAnem(void);
-extern "C" void serviceInterruptRain(void);
+extern "C" void ICACHE_RAM_ATTR serviceInterruptAnem(void);
+extern "C" void ICACHE_RAM_ATTR serviceInterruptRain(void);
 class SDL_Weather_80422
 {
   public:
@@ -53,8 +53,8 @@ class SDL_Weather_80422
      
     float accessInternalCurrentWindDirection();
 
-  friend void serviceInterruptAnem();
-  friend void serviceInterruptRain(); 
+  friend void ICACHE_RAM_ATTR serviceInterruptAnem();
+  friend void ICACHE_RAM_ATTR serviceInterruptRain(); 
   
   private:
   

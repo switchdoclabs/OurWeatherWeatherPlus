@@ -68,6 +68,27 @@ void writeEEPROMState()
   }
   EEPROM.write(i, '\0');
 
+
+  for (i = 200; i < WeatherUnderground_StationID.length() + 200; i++)
+  {
+    EEPROM.write(i, WeatherUnderground_StationID[i - 200]);
+
+
+  }
+  EEPROM.write(i, '\0');
+
+
+
+
+  for (i = 215; i < WeatherUnderground_StationKey.length() + 215; i++)
+  {
+    EEPROM.write(i, WeatherUnderground_StationKey[i - 215]);
+
+
+  }
+  EEPROM.write(i, '\0');
+
+
   EEPROM.commit();
 
   Serial.println("Writing EEPROM");
@@ -94,6 +115,10 @@ void writeEEPROMState()
   Serial.println(altitude_meters);
   Serial.print("Admin Password:");
   Serial.println(adminPassword.substring(0, 2) + "******");
+  Serial.print("WeatherUnderground Station ID:");
+  Serial.println(WeatherUnderground_StationID);
+  Serial.print("WeatherUnderground Station KEY:");
+  Serial.println(WeatherUnderground_StationKey.substring(0, 2) + "******");
 
 }
 
@@ -168,17 +193,36 @@ void readEEPROMState()
 
     altitude_meters = float(tempAltitude) / 10.0;
 
-    EEPROM.write(i + 1, tempAltitude >> 8);
-    EEPROM.write(i + 2, tempAltitude && 0xFF);
+    //EEPROM.write(i + 1, tempAltitude >> 8);
+    //EEPROM.write(i + 2, tempAltitude && 0xFF);
 
     adminPassword = "";
     for (i = 136; i < 136 + 34; ++i)
     {
       myChar = EEPROM.read(i);
-      if (myChar == 0)
+     if (myChar == 0)
         break;
       adminPassword += myChar;
     }
+
+    WeatherUnderground_StationID = "";
+    for (i = 200; i < 200 + 15; ++i)
+    {
+      myChar = EEPROM.read(i);
+      if (myChar == 0)
+        break;
+      WeatherUnderground_StationID += myChar;
+    }
+
+    WeatherUnderground_StationKey = "";
+    for (i = 215; i < 215 + 15; ++i)
+    {
+      myChar = EEPROM.read(i);
+      if (myChar == 0)
+        break;
+      WeatherUnderground_StationKey += myChar;
+    }
+
 
   }
   else
@@ -192,6 +236,8 @@ void readEEPROMState()
     altitude_meters = 637.0;  // default to 611
     writeEEPROMState();
     adminPassword = "admin";
+    WeatherUnderground_StationID = "";
+    WeatherUnderground_StationKey = "";
 
   }
   Serial.println("Reading EEPROM");
@@ -212,6 +258,10 @@ void readEEPROMState()
   Serial.println(altitude_meters);
   Serial.print("Admin Password:");
   Serial.println(adminPassword.substring(0, 2) + "******");
+  Serial.print("WeatherUnderground Station ID:");
+  Serial.println(WeatherUnderground_StationID);
+  Serial.print("WeatherUnderground Station KEY:");
+  Serial.println(WeatherUnderground_StationKey.substring(0, 2) + "******");
 }
 
 
@@ -270,118 +320,118 @@ void updateAllWeatherVariables()
   AM2315_Temperature = dataAM2315[1];
   AM2315_Humidity = dataAM2315[0];
 
-   if (BMP180Found)
-    {
+  if (BMP180Found)
+  {
 
 
-      /* Display the results (barometric pressure is measure in hPa) */
-      //BMP180_Pressure = bmp.readPressure();
-      // Put Alitude in Meters
-      BMP180_Pressure = bmp.readSealevelPressure(altitude_meters);
-      /* Display atmospheric pressue in hPa */
-      Serial.print("Pressure:    ");
-      Serial.print(BMP180_Pressure / 100.0);
-      Serial.println(" kPa");
-
-
-
-      /* Calculating altitude with reasonable accuracy requires pressure    *
-         sea level pressure for your position at the moment the data is
-         converted, as well as the ambient temperature in degress
-         celcius.  If you don't have these values, a 'generic' value of
-         1013.25 hPa can be used (defined as SENSORS_PRESSURE_SEALEVELHPA
-         in sensors.h), but this isn't ideal and will give variable
-         results from one day to the next.
-       *                                                                    *
-         You can usually find the current SLP value by looking at weather
-         websites or from environmental information centers near any major
-         airport.
-       *                                                                    *
-         For example, for Paris, France you can check the current mean
-         pressure and sea level at: http://bit.ly/16Au8ol                   */
-
-      /* First we get the current temperature from the BMP085 */
-      float temperature;
-      temperature = bmp.readTemperature();
-      Serial.print("Temperature: ");
-      Serial.print(temperature);
-      Serial.println(" C");
-
-
-      BMP180_Temperature = temperature;
+    /* Display the results (barometric pressure is measure in hPa) */
+    //BMP180_Pressure = bmp.readPressure();
+    // Put Alitude in Meters
+    BMP180_Pressure = bmp.readSealevelPressure(altitude_meters);
+    /* Display atmospheric pressue in hPa */
+    Serial.print("Pressure:    ");
+    Serial.print(BMP180_Pressure / 100.0);
+    Serial.println(" kPa");
 
 
 
+    /* Calculating altitude with reasonable accuracy requires pressure    *
+       sea level pressure for your position at the moment the data is
+       converted, as well as the ambient temperature in degress
+       celcius.  If you don't have these values, a 'generic' value of
+       1013.25 hPa can be used (defined as SENSORS_PRESSURE_SEALEVELHPA
+       in sensors.h), but this isn't ideal and will give variable
+       results from one day to the next.
+     *                                                                    *
+       You can usually find the current SLP value by looking at weather
+       websites or from environmental information centers near any major
+       airport.
+     *                                                                    *
+       For example, for Paris, France you can check the current mean
+       pressure and sea level at: http://bit.ly/16Au8ol                   */
 
-      /* Then convert the atmospheric pressure, and SLP to altitude         */
-      /* Update this next line with the current SLP for better results      */
-      float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
-      float altitude;
-      altitude = bmp.readAltitude(BMP180_Pressure);
-      Serial.print("Altitude:    ");
-      Serial.print(altitude);
-
-      BMP180_Altitude = altitude;
-      Serial.println(" m");
-
-    }
-
-    if (BMP280Found)
-    {
-
-      /* Display the results (barometric pressure is measure in hPa) */
-      //BMP180_Pressure = bmp.readPressure();
-      // Put Alitude in Meters
-
-      BMP180_Pressure = bme.readSealevelPressure(altitude_meters);
-
-      /* Display atmospheric pressue in hPa */
-      Serial.print("Pressure:    ");
-      Serial.print(BMP180_Pressure / 100.0);
-      Serial.println(" hPa");
+    /* First we get the current temperature from the BMP085 */
+    float temperature;
+    temperature = bmp.readTemperature();
+    Serial.print("Temperature: ");
+    Serial.print(temperature);
+    Serial.println(" C");
 
 
-
-      /* Calculating altitude with reasonable accuracy requires pressure    *
-         sea level pressure for your position at the moment the data is
-         converted, as well as the ambient temperature in degress
-         celcius.  If you don't have these values, a 'generic' value of
-         1013.25 hPa can be used (defined as SENSORS_PRESSURE_SEALEVELHPA
-         in sensors.h), but this isn't ideal and will give variable
-         results from one day to the next.
-       *                                                                    *
-         You can usually find the current SLP value by looking at weather
-         websites or from environmental information centers near any major
-         airport.
-       *                                                                    *
-         For example, for Paris, France you can check the current mean
-         pressure and sea level at: http://bit.ly/16Au8ol                   */
-
-      /* First we get the current temperature from the BMP085 */
-      float temperature;
-      temperature = bme.readTemperature();
-      Serial.print("Temperature: ");
-      Serial.print(temperature);
-      Serial.println(" C");
-
-
-      BMP180_Temperature = temperature;
+    BMP180_Temperature = temperature;
 
 
 
 
-      /* Then convert the atmospheric pressure, and SLP to altitude         */
-      /* Update this next line with the current SLP for better results      */
-      float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
-      float altitude;
-      altitude = bme.readAltitude(SENSORS_PRESSURE_SEALEVELHPA);
-      Serial.print("Altitude:    ");
-      Serial.print(altitude);
+    /* Then convert the atmospheric pressure, and SLP to altitude         */
+    /* Update this next line with the current SLP for better results      */
+    float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
+    float altitude;
+    altitude = bmp.readAltitude(BMP180_Pressure);
+    Serial.print("Altitude:    ");
+    Serial.print(altitude);
 
-      BMP180_Altitude = altitude;
-      Serial.println(" m");
+    BMP180_Altitude = altitude;
+    Serial.println(" m");
 
-    }
+  }
+
+  if (BMP280Found)
+  {
+
+    /* Display the results (barometric pressure is measure in hPa) */
+    //BMP180_Pressure = bmp.readPressure();
+    // Put Alitude in Meters
+
+    BMP180_Pressure = bme.readSealevelPressure(altitude_meters);
+
+    /* Display atmospheric pressue in hPa */
+    Serial.print("Pressure:    ");
+    Serial.print(BMP180_Pressure / 100.0);
+    Serial.println(" hPa");
+
+
+
+    /* Calculating altitude with reasonable accuracy requires pressure    *
+       sea level pressure for your position at the moment the data is
+       converted, as well as the ambient temperature in degress
+       celcius.  If you don't have these values, a 'generic' value of
+       1013.25 hPa can be used (defined as SENSORS_PRESSURE_SEALEVELHPA
+       in sensors.h), but this isn't ideal and will give variable
+       results from one day to the next.
+     *                                                                    *
+       You can usually find the current SLP value by looking at weather
+       websites or from environmental information centers near any major
+       airport.
+     *                                                                    *
+       For example, for Paris, France you can check the current mean
+       pressure and sea level at: http://bit.ly/16Au8ol                   */
+
+    /* First we get the current temperature from the BMP085 */
+    float temperature;
+    temperature = bme.readTemperature();
+    Serial.print("Temperature: ");
+    Serial.print(temperature);
+    Serial.println(" C");
+
+
+    BMP180_Temperature = temperature;
+
+
+
+
+    /* Then convert the atmospheric pressure, and SLP to altitude         */
+    /* Update this next line with the current SLP for better results      */
+    float seaLevelPressure = SENSORS_PRESSURE_SEALEVELHPA;
+    float altitude;
+    altitude = bme.readAltitude(SENSORS_PRESSURE_SEALEVELHPA);
+    Serial.print("Altitude:    ");
+    Serial.print(altitude);
+
+    BMP180_Altitude = altitude;
+    Serial.println(" m");
+
+  }
 
 
 

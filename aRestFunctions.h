@@ -118,6 +118,64 @@ int setAdminPassword(String command)
 
 }
 
+int setWUSID(String command)
+{
+  Serial.print("Command =");
+  Serial.println(command);
+
+
+  String sentPassword;
+  String WUSID;
+
+  sentPassword = getValue(command, ',', 0);
+  WUSID = getValue(command, ',', 1);
+
+  Serial.print("adminPassword=");
+  Serial.println(adminPassword);
+  Serial.print("sentPassword=");
+  Serial.println(sentPassword);
+
+  if (sentPassword == adminPassword)
+  {
+    WeatherUnderground_StationID = WUSID;
+    writeEEPROMState();
+    return 1;
+  }
+  else
+    return 0;
+
+    
+  return 1;
+
+}
+
+int setWUKEY(String command)
+{
+  Serial.print("Command =");
+  Serial.println(command);
+
+
+  String sentPassword;
+  String WUKEY;
+
+  sentPassword = getValue(command, ',', 0);
+  WUKEY = getValue(command, ',', 1);
+
+  if (sentPassword == adminPassword)
+  {
+    WeatherUnderground_StationKey = WUKEY;
+    writeEEPROMState();
+    return 1;
+  }
+  else
+    return 0;
+
+    
+  return 1;
+
+}
+
+
 int rebootOurWeather(String command) {
 
 
