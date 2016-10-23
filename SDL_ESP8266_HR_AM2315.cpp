@@ -22,6 +22,26 @@ extern unsigned char FirstBadReply[10];
 #include "SDL_ESP8266_HR_AM2315.h"
 //#include <util/delay.h>
 
+uint16_t verify_crc16(unsigned char *ptr, unsigned char len) {
+  unsigned short crc = 0xFFFF;
+  unsigned char i;
+
+  while (len--) {
+    crc ^= *ptr++;
+    for (i = 0; i < 8; i++) {
+      if (crc & 0x01) {
+        crc >>= 1;
+        crc ^= 0xA001;
+      } else {
+        crc >>= 1;
+      }
+    }
+
+  }
+  return crc;
+}
+
+
 SDL_ESP8266_HR_AM2315::SDL_ESP8266_HR_AM2315() {
 }
 int delayByCPU(long delaycount);
@@ -42,7 +62,7 @@ boolean SDL_ESP8266_HR_AM2315::readData(float *dataArray) {
 
   Wire.setClock(400000L);
 
-  
+
   Wire.beginTransmission(AM2315_I2CADDR);
   Wire.write(AM2315_READREG);
   Wire.endTransmission();
@@ -69,12 +89,13 @@ boolean SDL_ESP8266_HR_AM2315::readData(float *dataArray) {
 
   interrupts();
   ETS_UART_INTR_ENABLE();
-  
+
   yield();
 
 
   if ((reply[0] == AM2315_READREG) &&
-      (reply[1] == 4))  {
+      (reply[1] == 4))
+  {
 
     humidity = reply[2];
     humidity *= 256;
@@ -83,10 +104,24 @@ boolean SDL_ESP8266_HR_AM2315::readData(float *dataArray) {
 
     dataArray[0] = humidity;
 
-    temp = reply[4];
+    // check for negative temperature
+
+    bool negative;
+    negative = false;
+
+    if (reply[4] & 0x80)
+    {
+      negative = true;
+
+    }
+
+    temp = reply[4] & 0x7F;
     temp *= 256;
     temp += reply[5];
     temp /= 10;
+
+    if (negative)
+      temp = -temp;
 
     // leave in C
     //  dataArray[1] = (temp * 1.8)+32;
@@ -96,7 +131,27 @@ boolean SDL_ESP8266_HR_AM2315::readData(float *dataArray) {
     AM2315BadCount = -1;
 #endif
     //Serial.println("End of AM2315 acquire");
-    return true;
+    uint8_t crc_H, crc_L;
+
+    crc_H    = reply[7];
+    crc_L    = reply[6];
+    int crc;
+
+    // Verify CRC here
+
+    crc = 256 * crc_H + crc_L;
+
+
+    uint16_t crc_res = verify_crc16(reply, 6);
+
+    Serial.print("crc =0x");
+    Serial.println(crc, HEX);
+    Serial.print("crc_res =0x");
+    Serial.println(crc_res, HEX);
+
+
+
+    return crc_res == crc;
   }
 
   else  {

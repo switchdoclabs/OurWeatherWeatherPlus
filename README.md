@@ -4,7 +4,13 @@ OurWeather Software for the SwitchDoc Labs Board WeatherPlus
 Arduino IDE software designed for the ESP8266 on the WeatherPlus Board and the OurWeather Weather Kit
 
 www.switchdoc.com
-September 2016
+October 2016
+
+
+Current Version 019 - October 20, 2016
+
+- Added support for Solar Power System and SunAirPlus
+- Improved Reliability of AM2315 readings on Solar Power
 
 Current Version 018 - September 12, 2016
 

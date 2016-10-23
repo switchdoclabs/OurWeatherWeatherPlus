@@ -10,10 +10,10 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "018"
+#define WEATHERPLUSESP8266VERSION "019"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
-#undef DEBUGPRINT
+#define DEBUGPRINT
 
 
 // Change this to undef if you don't have the OLED present0
@@ -101,6 +101,7 @@ void configModeCallback ()
 #define DISPLAY_NO_UPDATE_AVAILABLE 12
 #define DISPLAY_NO_UPDATE_FAILED 13
 #define DISPLAY_UPDATE_FINISHED 14
+#define DISPLAY_SUNAIRPLUS 16
 
 #define DEBUG
 
@@ -190,7 +191,6 @@ float AM2315_Humidity;
 
 SDL_ESP8266_HR_AM2315 am2315;
 float dataAM2315[2];  //Array to hold data returned by sensor.  [0,1] => [Humidity, Temperature]
-
 
 boolean AOK;  // 1=successful read
 
@@ -348,6 +348,27 @@ float lastRain;
 
 #include "aRestFunctions.h"
 
+// SunAirPlus
+
+bool SunAirPlus_Present;
+
+float BatteryVoltage;
+float BatteryCurrent;
+float LoadVoltage;
+float LoadCurrent;
+float SolarPanelVoltage;
+float SolarPanelCurrent;
+
+
+#include "SDL_Arduino_INA3221.h"
+
+SDL_Arduino_INA3221 SunAirPlus;
+
+// the three channels of the INA3221 named for SunAirPlus Solar Power Controller channels (www.switchdoc.com)
+#define LIPO_BATTERY_CHANNEL 1
+#define SOLAR_CELL_CHANNEL 2
+#define OUTPUT_CHANNEL 3
+
 // OLED Display
 
 #include "OWMAdafruit_GFX.h"
@@ -365,7 +386,6 @@ ESP_SSD1306 display(OLED_RESET);
 #include "OLEDDisplay.h"
 
 
-
 //
 //
 // setup()
@@ -377,10 +397,38 @@ long AM2315TotalCount;
 byte FirstBadReply[10];
 #endif
 
+// validate temperature from AM2315 - Fixes the rare +32 degrees C issue
+bool invalidTemperatureFound;
+
+float validateTemperature(float incomingTemperature)
+{
+    if (incomingTemperature > AM2315_Temperature+20.0) // check for large jump in temperature
+    {
+      // OK, we may have an invalid temperature.  Make sure this is not a startup (current humidity will be 0.0 if startup)
+      if (AM2315_Humidity < 0.1)
+      {
+        // we are in startup phase, so accept temperature
+        invalidTemperatureFound = false;
+        return incomingTemperature;
+      }
+      else
+      {
+        // we have an issue with a bad read (typically a +32 degrees C increase)
+        // so send last good temperature back and flag a bad temperature
+        invalidTemperatureFound = true;
+        return AM2315_Temperature;
+      }
+    }
+    invalidTemperatureFound = false;
+    return incomingTemperature; // good temperature
+
+}
 
 RtcDateTime lastBoot;
 void setup() {
 
+
+  invalidTemperatureFound = false;
 
   // WiFi reset loop fix - erase the WiFi saved area
 
@@ -664,6 +712,21 @@ void setup() {
   Serial.print("Free Sketch Space on OurWeather:");
   Serial.println(ESP.getFreeSketchSpace());
 
+  // test for SunAirPlus_Present
+  SunAirPlus_Present = false;
+
+  LoadVoltage = SunAirPlus.getBusVoltage_V(OUTPUT_CHANNEL);
+
+  if (LoadVoltage < 0.1)
+  {
+    SunAirPlus_Present = false;
+    Serial.println("SunAirPlus Not Present");
+  }
+  else
+  {
+    SunAirPlus_Present = true;
+    Serial.println("SunAirPlus Present");
+  }
 
 
 
@@ -760,7 +823,7 @@ void setup() {
     //Serial.print("TempF: "); Serial.println(dataAM2315[0]);
 
 
-    AM2315_Temperature = dataAM2315[1];
+    AM2315_Temperature = validateTemperature(dataAM2315[1]);
     AM2315_Humidity = dataAM2315[0];
 
   }
@@ -861,9 +924,7 @@ void loop() {
     Serial.print("AOK=");
     Serial.println(AOK);
 #endif
-
-
-    AM2315_Temperature = dataAM2315[1];
+    AM2315_Temperature = validateTemperature(dataAM2315[1]);
     AM2315_Humidity = dataAM2315[0];
 #ifdef DEBUGPRINT
     Serial.print("FBRi=");
@@ -1063,6 +1124,58 @@ void loop() {
     }
 
     Serial.println("---------------");
+    if (SunAirPlus_Present)
+      Serial.println("SunAirPlus");
+    else
+      Serial.println("SunAirPlus Not Present");
+    Serial.println("---------------");
+
+    // if SunAirPlus present, read charge data
+
+    if (SunAirPlus_Present)
+    {
+
+      LoadVoltage = SunAirPlus.getBusVoltage_V(OUTPUT_CHANNEL);
+      LoadCurrent = SunAirPlus.getCurrent_mA(OUTPUT_CHANNEL);
+
+
+      BatteryVoltage = SunAirPlus.getBusVoltage_V(LIPO_BATTERY_CHANNEL);
+      BatteryCurrent = SunAirPlus.getCurrent_mA(LIPO_BATTERY_CHANNEL);
+
+      SolarPanelVoltage = SunAirPlus.getBusVoltage_V(SOLAR_CELL_CHANNEL);
+      SolarPanelCurrent = -SunAirPlus.getCurrent_mA(SOLAR_CELL_CHANNEL);
+
+      Serial.println("");
+      Serial.print("LIPO_Battery Load Voltage:  "); Serial.print(BatteryVoltage); Serial.println(" V");
+      Serial.print("LIPO_Battery Current:       "); Serial.print(BatteryCurrent); Serial.println(" mA");
+      Serial.println("");
+
+      Serial.print("Solar Panel Voltage:   "); Serial.print(SolarPanelVoltage); Serial.println(" V");
+      Serial.print("Solar Panel Current:   "); Serial.print(SolarPanelCurrent); Serial.println(" mA");
+      Serial.println("");
+
+      Serial.print("Load Voltage:   "); Serial.print(LoadVoltage); Serial.println(" V");
+      Serial.print("Load Current:   "); Serial.print(LoadCurrent); Serial.println(" mA");
+      Serial.println("");
+
+    }
+    else
+    {
+
+      LoadVoltage = 0.0;
+      LoadCurrent = 0.0;
+
+
+      BatteryVoltage = 0.0;
+      BatteryCurrent = 0.0;
+
+      SolarPanelVoltage = 0.0;
+      SolarPanelCurrent = 0.0;
+
+
+    }
+
+    Serial.println("---------------");
     Serial.println("WeatherRack");
     Serial.println("---------------");
 
@@ -1154,7 +1267,25 @@ void loop() {
     RestDataString += currentTimeString + "," ;
     RestDataString += stationName + ",";
     RestDataString += String(currentAirQualitySensor) + ",";
-    RestDataString += String(currentAirQuality);
+    RestDataString += String(currentAirQuality) + ",";
+
+    RestDataString += String(BatteryVoltage, 2) + ",";
+    RestDataString += String(BatteryCurrent, 2) + ",";
+    RestDataString += String(SolarPanelVoltage, 2) + ",";
+    RestDataString += String(SolarPanelCurrent, 2) + ",";
+    RestDataString += String(LoadVoltage, 2) + ",";
+    RestDataString += String(LoadCurrent, 2) + ",";
+
+    if (invalidTemperatureFound == true)
+    {
+      RestDataString += "IVF:" + String(AOK) + ",";
+    }
+    else
+    {
+      RestDataString += "V:" + String(AOK) + ",";
+    }
+    invalidTemperatureFound = false;
+
 
     if (timeElapsed300Seconds > 300000)
     {
@@ -1165,7 +1296,7 @@ void loop() {
 
       Serial.print("lastBoot = ");
       Serial.println(lastBootTimeString);
-      
+
       timeElapsed300Seconds = 0;
 
       // update rain
@@ -1195,6 +1326,14 @@ void loop() {
     }
 
     updateDisplay(WeatherDisplayMode);
+
+    if (SunAirPlus_Present)
+    {
+
+
+      updateDisplay(DISPLAY_SUNAIRPLUS);
+      delay(3000);
+    }
     Serial.println("OutOfDisplay");
 
   }

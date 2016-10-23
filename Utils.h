@@ -200,7 +200,7 @@ void readEEPROMState()
     for (i = 136; i < 136 + 34; ++i)
     {
       myChar = EEPROM.read(i);
-     if (myChar == 0)
+      if (myChar == 0)
         break;
       adminPassword += myChar;
     }
@@ -317,7 +317,7 @@ void updateAllWeatherVariables()
   heapSize = ESP.getFreeHeap();
 
   AOK = am2315.readData(dataAM2315);
-  AM2315_Temperature = dataAM2315[1];
+  AM2315_Temperature = validateTemperature(dataAM2315[1]);
   AM2315_Humidity = dataAM2315[0];
 
   if (BMP180Found)

@@ -171,6 +171,29 @@ void updateDisplay(int displayMode)
       }
       break;
 
+    case DISPLAY_SUNAIRPLUS:
+
+      {
+        setDisplayLine(0, "Solar Readings");
+       setDisplayLine(1, "----------------");
+
+        String stringSolar;
+        stringSolar = "Battery:" + String(BatteryVoltage, 2) + "V/" + String(BatteryCurrent, 1) + "mA";
+        setDisplayLine(2, const_cast<char*>(stringSolar.c_str()) );
+
+        stringSolar = "Solar:" + String(SolarPanelVoltage, 2) + "V/" + String(SolarPanelCurrent, 1) + "mA";
+        setDisplayLine(3, const_cast<char*>(stringSolar.c_str()) );
+
+        stringSolar = "Load:" + String(LoadVoltage, 2) + "V/" + String(LoadCurrent, 1) + "mA";
+        setDisplayLine(4, const_cast<char*>(stringSolar.c_str()) );
+
+
+
+
+      }
+      break;
+
+
 
     case DISPLAY_WEATHER_SMALL:
 
@@ -847,6 +870,7 @@ void writeAllDisplayLines(int DisplayMode)
     case DISPLAY_TRYING_AP:
     case DISPLAY_FAILING_AP:
 
+
       {
         int textSize = 1;
         display.setTextSize(textSize);
@@ -873,6 +897,25 @@ void writeAllDisplayLines(int DisplayMode)
       }
 
       break;
+
+    case DISPLAY_SUNAIRPLUS:
+      {
+        int textSize = 1;
+        display.setTextSize(textSize);
+        display.setTextColor(WHITE);
+        int i;
+        for (i = 0; i < 5; i++)
+        {
+          display.setCursor(0, (29 - (2 - textSize) * 20) * (i));
+
+          display.println(displayLines[i]);
+          display.display();
+        }
+      }
+
+
+
+      break;
     case DISPLAY_WEATHER_SMALL:
       {
         int textSize = 1;
@@ -893,6 +936,7 @@ void writeAllDisplayLines(int DisplayMode)
       break;
 
     case DISPLAY_WEATHER_MEDIUM:
+
       {
         int textSize = 2;
         display.setTextSize(textSize);
