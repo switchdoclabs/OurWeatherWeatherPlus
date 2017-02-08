@@ -1,5 +1,5 @@
 // Filename WeatherPlus.ino
-// Version 1.18 September 2016
+// Version 1.20 September 2016
 // SwitchDoc Labs, LLC
 //
 
@@ -10,10 +10,10 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "019"
+#define WEATHERPLUSESP8266VERSION "021"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
-#define DEBUGPRINT
+#undef DEBUGPRINT
 
 
 // Change this to undef if you don't have the OLED present0
@@ -102,6 +102,7 @@ void configModeCallback ()
 #define DISPLAY_NO_UPDATE_FAILED 13
 #define DISPLAY_UPDATE_FINISHED 14
 #define DISPLAY_SUNAIRPLUS 16
+#define DISPLAY_WXLINK 17
 
 #define DEBUG
 
@@ -185,6 +186,7 @@ RtcDS3231 Rtc;
 
 float AM2315_Temperature;
 float AM2315_Humidity;
+float dewpoint;
 
 #include "SDL_ESP8266_HR_AM2315.h"
 
@@ -213,6 +215,7 @@ int heapSize;
 
 String WeatherUnderground_StationID;
 String WeatherUnderground_StationKey;
+int lastMessageID;
 
 
 
@@ -359,6 +362,32 @@ float LoadCurrent;
 float SolarPanelVoltage;
 float SolarPanelCurrent;
 
+// WXLink Support
+
+
+#include "Crc16.h"
+
+//Crc 16 library (XModem)
+Crc16 crc;
+
+bool WXLink_Present;
+
+
+float WXBatteryVoltage;
+float WXBatteryCurrent;
+
+float WXLoadCurrent;
+float WXSolarPanelVoltage;
+float WXSolarPanelCurrent;
+long WXMessageID;
+bool WXLastMessageGood;
+
+
+#include "WXLink.h"
+
+
+
+
 
 #include "SDL_Arduino_INA3221.h"
 
@@ -402,27 +431,52 @@ bool invalidTemperatureFound;
 
 float validateTemperature(float incomingTemperature)
 {
-    if (incomingTemperature > AM2315_Temperature+20.0) // check for large jump in temperature
+  if (incomingTemperature > AM2315_Temperature + 20.0) // check for large jump in temperature
+  {
+    // OK, we may have an invalid temperature.  Make sure this is not a startup (current humidity will be 0.0 if startup)
+    if (AM2315_Humidity < 0.1)
     {
-      // OK, we may have an invalid temperature.  Make sure this is not a startup (current humidity will be 0.0 if startup)
-      if (AM2315_Humidity < 0.1)
-      {
-        // we are in startup phase, so accept temperature
-        invalidTemperatureFound = false;
-        return incomingTemperature;
-      }
-      else
-      {
-        // we have an issue with a bad read (typically a +32 degrees C increase)
-        // so send last good temperature back and flag a bad temperature
-        invalidTemperatureFound = true;
-        return AM2315_Temperature;
-      }
+      // we are in startup phase, so accept temperature
+      invalidTemperatureFound = false;
+      return incomingTemperature;
     }
-    invalidTemperatureFound = false;
-    return incomingTemperature; // good temperature
+    else
+    {
+      // we have an issue with a bad read (typically a +32 degrees C increase)
+      // so send last good temperature back and flag a bad temperature
+      invalidTemperatureFound = true;
+      return AM2315_Temperature;
+    }
+  }
+  invalidTemperatureFound = false;
+  return incomingTemperature; // good temperature
 
 }
+
+
+//scan for I2C Addresses
+
+bool scanAddressForI2CBus(byte from_addr)
+{
+  byte error;
+
+  // The i2c_scanner uses the return value of
+  // the Write.endTransmisstion to see if
+  // a device did acknowledge to the address.
+  Wire.beginTransmission(from_addr);
+  error = Wire.endTransmission();
+
+  if (error == 0)
+  {
+    return true;
+  }
+  else if (error == 4)
+  {
+
+  }
+  return false;
+}
+
 
 RtcDateTime lastBoot;
 void setup() {
@@ -620,6 +674,7 @@ void setup() {
   rest.variable("WindDirectionMax", &windDirectionMax);
   rest.variable("AirQualitySensor", &INTcurrentAirQualitySensor);
 
+
   // Handle REST calls
   WiFiClient client = server.available();
   if (client)
@@ -728,6 +783,35 @@ void setup() {
     Serial.println("SunAirPlus Present");
   }
 
+  // test for WXLink Present
+
+  WXLink_Present = false;
+
+  WXLink_Present = scanAddressForI2CBus(0x08);
+
+  WXLastMessageGood = false;
+
+  WXMessageID = 0;
+  WXLoadCurrent = 0.0;
+
+
+  WXBatteryVoltage = 0.0;
+  WXBatteryCurrent = 0.0;
+
+  WXSolarPanelVoltage = 0.0;
+  WXSolarPanelCurrent = 0.0;
+  lastMessageID = -1;
+
+  if (WXLink_Present == false)
+  {
+
+    Serial.println("WXLink Not Present");
+  }
+  else
+  {
+
+    Serial.println("WXLink Present");
+  }
 
 
   Serial.print("port number = ");
@@ -825,6 +909,7 @@ void setup() {
 
     AM2315_Temperature = validateTemperature(dataAM2315[1]);
     AM2315_Humidity = dataAM2315[0];
+    dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
 
   }
   else
@@ -838,6 +923,7 @@ void setup() {
   AM2315_Temperature = 0.0;
 
   AM2315_Humidity = 0.0;
+  dewpoint = 0.0;
 
 
 
@@ -917,32 +1003,39 @@ void loop() {
     Serial.println("---------------");
 
 
-
-
-    AOK = am2315.readData(dataAM2315);
-#ifdef DEBUGPRINT
-    Serial.print("AOK=");
-    Serial.println(AOK);
-#endif
-    AM2315_Temperature = validateTemperature(dataAM2315[1]);
-    AM2315_Humidity = dataAM2315[0];
-#ifdef DEBUGPRINT
-    Serial.print("FBRi=");
-    for (uint8_t i = 0; i < 10; i++)
+    if (!WXLink_Present)
     {
 
-      Serial.print(FirstBadReply[i], HEX);
-      Serial.print(" ");
-    }
-    Serial.println();
-#endif
-    Serial.print("Temp: "); Serial.println(AM2315_Temperature);
-    Serial.print("Hum: "); Serial.println(AM2315_Humidity);
+      AOK = am2315.readData(dataAM2315);
 #ifdef DEBUGPRINT
-    Serial.print("AM2315TotalCount="); Serial.println(AM2315TotalCount);
-    Serial.print("AM2315BadCount="); Serial.println(AM2315BadCount);
+      Serial.print("AOK=");
+      Serial.println(AOK);
 #endif
+      AM2315_Temperature = validateTemperature(dataAM2315[1]);
+      AM2315_Humidity = dataAM2315[0];
+      dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
+#ifdef DEBUGPRINT
+      Serial.print("FBRi=");
+      for (uint8_t i = 0; i < 10; i++)
+      {
 
+        Serial.print(FirstBadReply[i], HEX);
+        Serial.print(" ");
+      }
+      Serial.println();
+#endif
+      Serial.print("Temp: "); Serial.println(AM2315_Temperature);
+      Serial.print("Hum: "); Serial.println(AM2315_Humidity);
+      Serial.print("DwPt: "); Serial.println(dewpoint);
+#ifdef DEBUGPRINT
+      Serial.print("AM2315TotalCount="); Serial.println(AM2315TotalCount);
+      Serial.print("AM2315BadCount="); Serial.println(AM2315BadCount);
+#endif
+    }
+    else
+    {
+      Serial.println("WXLink Present - AM2315 local read overruled");
+    }
 
 
     RestDataString += String(AM2315_Temperature, 2) + ",";
@@ -1144,20 +1237,20 @@ void loop() {
 
       SolarPanelVoltage = SunAirPlus.getBusVoltage_V(SOLAR_CELL_CHANNEL);
       SolarPanelCurrent = -SunAirPlus.getCurrent_mA(SOLAR_CELL_CHANNEL);
+      /*
+            Serial.println("");
+            Serial.print("LIPO_Battery Load Voltage:  "); Serial.print(BatteryVoltage); Serial.println(" V");
+            Serial.print("LIPO_Battery Current:       "); Serial.print(BatteryCurrent); Serial.println(" mA");
+            Serial.println("");
 
-      Serial.println("");
-      Serial.print("LIPO_Battery Load Voltage:  "); Serial.print(BatteryVoltage); Serial.println(" V");
-      Serial.print("LIPO_Battery Current:       "); Serial.print(BatteryCurrent); Serial.println(" mA");
-      Serial.println("");
+            Serial.print("Solar Panel Voltage:   "); Serial.print(SolarPanelVoltage); Serial.println(" V");
+            Serial.print("Solar Panel Current:   "); Serial.print(SolarPanelCurrent); Serial.println(" mA");
+            Serial.println("");
 
-      Serial.print("Solar Panel Voltage:   "); Serial.print(SolarPanelVoltage); Serial.println(" V");
-      Serial.print("Solar Panel Current:   "); Serial.print(SolarPanelCurrent); Serial.println(" mA");
-      Serial.println("");
-
-      Serial.print("Load Voltage:   "); Serial.print(LoadVoltage); Serial.println(" V");
-      Serial.print("Load Current:   "); Serial.print(LoadCurrent); Serial.println(" mA");
-      Serial.println("");
-
+            Serial.print("Load Voltage:   "); Serial.print(LoadVoltage); Serial.println(" V");
+            Serial.print("Load Current:   "); Serial.print(LoadCurrent); Serial.println(" mA");
+            Serial.println("");
+      */
     }
     else
     {
@@ -1176,35 +1269,156 @@ void loop() {
     }
 
     Serial.println("---------------");
+    if (WXLink_Present)
+      Serial.println("WXLink");
+    else
+      Serial.println("WXLink Not Present");
+    Serial.println("---------------");
+
+    // read variables from WXLink
+
+    if (WXLink_Present)
+    {
+      if (readWXLink() == true)
+      {
+        WXLastMessageGood = true;
+        blinkLED(2, 200);  // blink 2 for good message
+
+
+      }
+      else
+      {
+
+        WXLastMessageGood = false;
+
+
+
+      }
+    }
+
+
+
+
+    Serial.println("---------------");
     Serial.println("WeatherRack");
     Serial.println("---------------");
 
-    currentWindSpeed = weatherStation.current_wind_speed();
-    currentWindGust = weatherStation.get_wind_gust();
-
-    currentWindDirection = weatherStation.current_wind_direction();
-
-    float oldRain = rainTotal;
-    rainTotal = rainTotal + weatherStation.get_current_rain_total();
-    if (oldRain < rainTotal)
+    if (WXLink_Present == false)
     {
-      strcpy(bubbleStatus, "It is Raining\0");
+
+      currentWindSpeed = weatherStation.current_wind_speed();
+      currentWindGust = weatherStation.get_wind_gust();
+
+      currentWindDirection = weatherStation.current_wind_direction();
+
+      float oldRain = rainTotal;
+      rainTotal = rainTotal + weatherStation.get_current_rain_total();
+      if (oldRain < rainTotal)
+      {
+        strcpy(bubbleStatus, "It is Raining\0");
+      }
+
+      windSpeedGraph.add_value(currentWindSpeed);
+      windGustGraph.add_value(currentWindGust);
+      windDirectionGraph.add_value(currentWindDirection);
+
+      windSpeedGraph.getRasPiString(windSpeedBuffer, windSpeedBuffer);
+      windGustGraph.getRasPiString(windGustBuffer, windGustBuffer);
+      windDirectionGraph.getRasPiString(windDirectionBuffer, windDirectionBuffer);
+
+      windSpeedMin = windSpeedGraph.returnMinValue();
+      windSpeedMax = windSpeedGraph.returnMaxValue();
+      windGustMin = windGustGraph.returnMinValue();
+      windGustMax = windGustGraph.returnMaxValue();
+      windDirectionMin = windDirectionGraph.returnMinValue();
+      windDirectionMax = windDirectionGraph.returnMaxValue();
+    }
+    else
+    {
+      // WXLink is PRESENT, take from WXLink
+
+      if (WXLastMessageGood == true)  // if bad WX Message, don't change
+      {
+
+        currentWindSpeed = convert4BytesToFloat(buffer, 9);
+        currentWindGust = convert4BytesToFloat(buffer, 21);
+
+        currentWindDirection = convert2BytesToInt(buffer, 7);
+
+        float oldRain = rainTotal;
+        rainTotal = convert4BytesToLong(buffer, 17);
+
+        if (oldRain < rainTotal)
+        {
+          strcpy(bubbleStatus, "It is Raining\0");
+        }
+
+        windSpeedGraph.add_value(currentWindSpeed);
+        windGustGraph.add_value(currentWindGust);
+        windDirectionGraph.add_value(currentWindDirection);
+
+        windSpeedGraph.getRasPiString(windSpeedBuffer, windSpeedBuffer);
+        windGustGraph.getRasPiString(windGustBuffer, windGustBuffer);
+        windDirectionGraph.getRasPiString(windDirectionBuffer, windDirectionBuffer);
+
+        windSpeedMin = windSpeedGraph.returnMinValue();
+        windSpeedMax = windSpeedGraph.returnMaxValue();
+        windGustMin = windGustGraph.returnMinValue();
+        windGustMax = windGustGraph.returnMaxValue();
+        windDirectionMin = windDirectionGraph.returnMinValue();
+        windDirectionMax = windDirectionGraph.returnMaxValue();
+
+        // Now overwrite outside temp/humidity
+
+        AM2315_Temperature = validateTemperature(convert4BytesToFloat(buffer, 25));
+        AM2315_Humidity = convert4BytesToFloat(buffer, 29);
+
+        // calculate dewpoint
+        dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
+
+
+        // set up solar status and message ID for screen
+
+        // if WXLINK present, read charge data
+
+
+
+        WXLoadCurrent = convert4BytesToFloat(buffer, 41);
+
+
+        WXBatteryVoltage = convert4BytesToFloat(buffer, 33);
+        WXBatteryCurrent = convert4BytesToFloat(buffer, 37);
+
+        WXSolarPanelVoltage = convert4BytesToFloat(buffer, 45);
+        WXSolarPanelCurrent = convert4BytesToFloat(buffer, 49);
+
+        WXMessageID = convert4BytesToLong(buffer, 57);
+
+        /*   Serial.println("");
+           Serial.print("WXLIPO_Battery Load Voltage:  "); Serial.print(WXBatteryVoltage); Serial.println(" V");
+           Serial.print("WXLIPO_Battery Current:       "); Serial.print(WXBatteryCurrent); Serial.println(" mA");
+           Serial.println("");
+
+           Serial.print("WXSolar Panel Voltage:   "); Serial.print(WXSolarPanelVoltage); Serial.println(" V");
+           Serial.print("WXSolar Panel Current:   "); Serial.print(WXSolarPanelCurrent); Serial.println(" mA");
+           Serial.println("");
+
+           Serial.print("WXLoad Current:   "); Serial.print(WXLoadCurrent); Serial.println(" mA");
+           Serial.println("");
+        */
+
+
+
+
+      }
+
+
+
+
     }
 
-    windSpeedGraph.add_value(currentWindSpeed);
-    windGustGraph.add_value(currentWindGust);
-    windDirectionGraph.add_value(currentWindDirection);
 
-    windSpeedGraph.getRasPiString(windSpeedBuffer, windSpeedBuffer);
-    windGustGraph.getRasPiString(windGustBuffer, windGustBuffer);
-    windDirectionGraph.getRasPiString(windDirectionBuffer, windDirectionBuffer);
 
-    windSpeedMin = windSpeedGraph.returnMinValue();
-    windSpeedMax = windSpeedGraph.returnMaxValue();
-    windGustMin = windGustGraph.returnMinValue();
-    windGustMax = windGustGraph.returnMaxValue();
-    windDirectionMin = windDirectionGraph.returnMinValue();
-    windDirectionMax = windDirectionGraph.returnMaxValue();
 
 
 
@@ -1276,6 +1490,14 @@ void loop() {
     RestDataString += String(LoadVoltage, 2) + ",";
     RestDataString += String(LoadCurrent, 2) + ",";
 
+
+    RestDataString += String(WXBatteryVoltage, 2) + ",";
+    RestDataString += String(WXBatteryCurrent, 2) + ",";
+    RestDataString += String(WXSolarPanelVoltage, 2) + ",";
+    RestDataString += String(WXSolarPanelCurrent, 2) + ",";
+    RestDataString += "0.00,";
+    RestDataString += String(WXLoadCurrent, 2) + ",";
+
     if (invalidTemperatureFound == true)
     {
       RestDataString += "IVF:" + String(AOK) + ",";
@@ -1285,6 +1507,15 @@ void loop() {
       RestDataString += "V:" + String(AOK) + ",";
     }
     invalidTemperatureFound = false;
+
+    if (WXLastMessageGood == true)
+    {
+      RestDataString += "WXLMG ,";
+    }
+    else
+    {
+      RestDataString += "WXLMB ,";
+    }
 
 
     if (timeElapsed300Seconds > 300000)
@@ -1321,8 +1552,39 @@ void loop() {
 
       Serial.println("Attempting to send data to WeatherUnderground");
 
+      bool dataStale;
+      dataStale = false;
+      // check for stale data from WXLink
 
-      sendWeatherUndergroundData();
+
+      if (WXLink_Present)
+      {
+        if (lastMessageID != WXMessageID)
+        {
+          dataStale = false;
+          lastMessageID = WXMessageID;
+        }
+        else
+        {
+          dataStale = true;
+        }
+      }
+
+      if (dataStale == false)
+        Serial.println("WeatherUnderground Data New - sent");
+      else
+        Serial.println("WeatherUnderground Data Stale - Not sent");
+        
+      if (dataStale == false)
+      {
+        if (sendWeatherUndergroundData() == 0)
+        {
+          // Failed - try again
+          sendWeatherUndergroundData();
+        }
+
+
+      }
     }
 
     updateDisplay(WeatherDisplayMode);
@@ -1330,9 +1592,35 @@ void loop() {
     if (SunAirPlus_Present)
     {
 
-
+      delay(3000);
       updateDisplay(DISPLAY_SUNAIRPLUS);
       delay(3000);
+    }
+
+    if (WXLink_Present)
+    {
+
+      delay(3000);
+      updateDisplay(DISPLAY_WXLINK);
+      delay(3000);
+
+
+      // check to see if pin 5 is stuck high (SCL is at 0) - then we are hung.
+
+      int SCL, SDA;
+
+      SCL = digitalRead(4);
+      SDA = digitalRead(5);
+      Serial.print("SCL/SDA=");
+      Serial.print(SCL);
+      Serial.print("/");
+      Serial.println(SDA);
+
+      if ((SCL == 0) || (SDA == 0))
+      {
+        resetWXLink();
+
+      }
     }
     Serial.println("OutOfDisplay");
 

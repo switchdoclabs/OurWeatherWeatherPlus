@@ -24,27 +24,27 @@ int getAirQuality(void)
   
   if (sensor_value > 11200)
   {
-    Serial.println("Very High Pollution Detected");
+    //Serial.println("Very High Pollution Detected");
     return 0;
   }
   else if (sensor_value > 6400)
   {
-    Serial.println("High Pollution");
+    //Serial.println("High Pollution");
     return 1;
   }
   else if (sensor_value > 4800)
   {
-    Serial.println("Medium Pollution");
+    //Serial.println("Medium Pollution");
     return 2;
   }
   else if (sensor_value > 3200)
   {
-    Serial.println("Low Pollution");
+    //Serial.println("Low Pollution");
     return 3;
   }
   else
   {
-    Serial.println("Fresh Air");
+    //Serial.println("Fresh Air");
     return 4;
 
   }

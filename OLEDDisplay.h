@@ -192,7 +192,31 @@ void updateDisplay(int displayMode)
 
       }
       break;
+      
+    case DISPLAY_WXLINK:
 
+      {
+        setDisplayLine(0, "WXLink Readings");
+       setDisplayLine(1, "----------------");
+
+        String stringSolar;
+        stringSolar = "Battery:" + String(WXBatteryVoltage, 2) + "V/" + String(WXBatteryCurrent, 1) + "mA";
+        setDisplayLine(2, const_cast<char*>(stringSolar.c_str()) );
+
+        stringSolar = "Solar:" + String(WXSolarPanelVoltage, 2) + "V/" + String(WXSolarPanelCurrent, 1) + "mA";
+        setDisplayLine(3, const_cast<char*>(stringSolar.c_str()) );
+
+        stringSolar = "Load:" + String(WXLoadCurrent, 1) + "mA";
+        setDisplayLine(4, const_cast<char*>(stringSolar.c_str()) );
+        
+      setDisplayLine(5, "----------------");
+
+        stringSolar = "MessageID: " + String(WXMessageID);
+        setDisplayLine(6, const_cast<char*>(stringSolar.c_str()) );
+
+
+      }
+      break;
 
 
     case DISPLAY_WEATHER_SMALL:
@@ -769,7 +793,7 @@ void updateDisplay(int displayMode)
           strcat(buffer, "kph");
           setDisplayLine(5, buffer);
 
-          updateAllWeatherVariables();
+          //updateAllWeatherVariables();
           buffer[0] = '\0';
           setDisplayLine(6, "WndDr");
           windDirection = returnDirectionFromDegrees(int(currentWindDirection));
@@ -899,12 +923,29 @@ void writeAllDisplayLines(int DisplayMode)
       break;
 
     case DISPLAY_SUNAIRPLUS:
+
       {
         int textSize = 1;
         display.setTextSize(textSize);
         display.setTextColor(WHITE);
         int i;
         for (i = 0; i < 5; i++)
+        {
+          display.setCursor(0, (29 - (2 - textSize) * 20) * (i));
+
+          display.println(displayLines[i]);
+          display.display();
+        }
+      }
+      break;
+      
+   case DISPLAY_WXLINK:
+      {
+        int textSize = 1;
+        display.setTextSize(textSize);
+        display.setTextColor(WHITE);
+        int i;
+        for (i = 0; i < 7; i++)
         {
           display.setCursor(0, (29 - (2 - textSize) * 20) * (i));
 

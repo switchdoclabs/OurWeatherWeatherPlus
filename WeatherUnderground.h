@@ -38,7 +38,8 @@ int sendWeatherUndergroundData()
 
   myURL += "&humidity=" + String(AM2315_Humidity);
   myURL += "&tempf=" + String((AM2315_Temperature * 9.0 / 5.0) + 32.0);
-
+  
+  myURL += "&dewptf=" + String((dewpoint * 9.0 / 5.0) + 32.0);
 
   myURL += "&rainin=" + String((rain60Minutes) / 25.4);
   myURL += "&dailyrainin=" + String(( rainCalendarDay) / 25.4);
@@ -64,11 +65,26 @@ int sendWeatherUndergroundData()
                "Connection: close\r\n\r\n");
   delay(500);
 
+String WUResult;
+
   // Read all the lines of the reply from server and print them to Serial
   while (client.available()) {
     String line = client.readStringUntil('\r');
     Serial.print(line);
+    WUResult = line;
     yield();
+  }
+  Serial.print("WUResult=");
+  Serial.println(WUResult);
+
+  if (WUResult.indexOf("success") != -1)
+  {
+     Serial.println("WU Successful Write");
+     return 1;
+  }
+  else
+  {
+    Serial.println("WU NOT Successful Write");
   }
   client.stop();
   return 0;
