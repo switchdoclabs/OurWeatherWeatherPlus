@@ -24,16 +24,14 @@
 
 #include "Arduino.h"
 
-#include "OWMAdafruit_ADS1015.h"
 
-
-extern "C" void ICACHE_RAM_ATTR serviceInterruptAnem(void);
-extern "C" void ICACHE_RAM_ATTR serviceInterruptRain(void);
+extern "C" void serviceInterruptAnem(void)  __attribute__ ((signal));
+extern "C" void serviceInterruptRain(void)  __attribute__ ((signal));
 class SDL_Weather_80422
 {
   public:
     SDL_Weather_80422(int pinAnem, int pinRain, int intAnem, int intRain, int ADChannel, int ADMode);
-  
+
     float get_current_rain_total();
     float current_wind_speed();
     float current_wind_direction();
@@ -41,43 +39,51 @@ class SDL_Weather_80422
     float get_wind_gust();
     void reset_rain_total();
     void reset_wind_gust();
-  
-    void setWindMode(int selectedMode, float sampleTime);  // time in seconds
-    
 
-    static unsigned long _shortestWindTime;
+    void setWindMode(int selectedMode, float sampleTime);  // time in seconds
+
+
+    static long _shortestWindTime;
+    static long _shortestWindTime2;
+    static long _shortestWindTime3;
+    static long _shortestWindTime4;
+    static long _shortestWindTime5;
+
     static long _currentRainCount;
     static long _currentWindCount;
-    
 
-     
+
+    static long _totalWindTime;
+
     float accessInternalCurrentWindDirection();
 
-  friend void ICACHE_RAM_ATTR serviceInterruptAnem();
-  friend void ICACHE_RAM_ATTR serviceInterruptRain(); 
-  
+    friend void serviceInterruptAnem();
+    friend void serviceInterruptRain();
+
   private:
-  
+
 
     int _pinAnem;
-    int _pinRain;    
+    int _pinRain;
     int _intAnem;
     int _intRain;
     int _ADChannel;
     int _ADMode;
     float _sampleTime;
     int _selectedMode;
-    
 
-    
-    
+
+
+
     unsigned long _startSampleTime;
-    
+
 
     float _currentWindSpeed;
 
+
+
     float _currentWindDirection;
-    
+
     void startWindSample(float sampleTime);
     float get_current_wind_speed_when_sampling();
 };

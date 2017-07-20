@@ -1,5 +1,5 @@
 // Filename WeatherPlus.ino
-// Version 1.20 September 2016
+// Version 1.22 July 2017
 // SwitchDoc Labs, LLC
 //
 
@@ -10,7 +10,7 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "021"
+#define WEATHERPLUSESP8266VERSION "022"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 #undef DEBUGPRINT
@@ -201,6 +201,45 @@ const char *monthName[12] = {
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 };
 
+// MOD1016-G Lightning Detector AS3935
+/*
+#include "AS3935.h"
+
+void printAS3935Registers();
+
+
+// Interrupt handler for AS3935 irqs
+// and flag variable that indicates interrupt has been triggered
+// Variables that get changed in interrupt routines need to be declared volatile
+// otherwise compiler can optimize them away, assuming they never get changed
+void AS3935Irq();
+volatile int AS3935IrqTriggered;
+
+// Library object initialization First argument is interrupt pin, second is device I2C address
+AS3935 AS3935(3, 0x03);
+
+
+
+void printAS3935Registers()
+{
+  int noiseFloor = AS3935.getNoiseFloor();
+  int spikeRejection = AS3935.getSpikeRejection();
+  int watchdogThreshold = AS3935.getWatchdogThreshold();
+  Serial.print("Noise floor is: ");
+  Serial.println(noiseFloor, DEC);
+  Serial.print("Spike rejection is: ");
+  Serial.println(spikeRejection, DEC);
+  Serial.print("Watchdog threshold is: ");
+  Serial.println(watchdogThreshold, DEC);
+}
+
+// this is irq handler for AS3935 interrupts, has to return void and take no arguments
+// always make code in interrupt handlers fast and short
+void AS3935Irq()
+{
+  AS3935IrqTriggered = 1;
+}
+*/
 
 // Station Name
 

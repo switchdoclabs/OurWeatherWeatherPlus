@@ -18,8 +18,14 @@
 
 
 extern Adafruit_ADS1015 ads1015;
+#define ESP8266
+// Factor dervied from empherical analysis.  The ESP8266 screws with interrupt timing
+#define ESP8266_Factor 0.298
 
-
+//#define NO_PORTC_PINCHANGES // to indicate that port c will not be used for pin change interrupts
+//#define NO_PORTD_PINCHANGES // to indicate that port d will not be used for pin change interrupts
+//
+//#include "PinChangeInt.h"
 
 // private functions
 
@@ -47,7 +53,6 @@ float voltageToDegrees(float value, float defaultWindDirection)
   // Note:  The original documentation for the wind vane says 16 positions.  Typically only recieve 8 positions.  And 315 degrees was wrong.
 
   // For 5V, use 1.0.  For 3.3V use 0.66
-
 #define ADJUST3OR5 0.66
 #define PowerVoltage 3.3
 
@@ -120,13 +125,50 @@ float voltageToDegrees(float value, float defaultWindDirection)
 
 unsigned long lastWindTime;
 
+#ifdef ESP8266
 
 void ICACHE_RAM_ATTR serviceInterruptAnem()
 {
+  noInterrupts();
   unsigned long currentTime = (unsigned long)(micros() - lastWindTime);
 
   lastWindTime = micros();
-  if (currentTime > 1000) // debounce
+  //lastWindTime = millis();
+
+  //if (currentTime > 25000)  // debounce
+  if (currentTime > 10000)  // debounce
+  {
+
+
+    SDL_Weather_80422::_totalWindTime = SDL_Weather_80422::_totalWindTime + currentTime;
+    SDL_Weather_80422::_currentWindCount++;
+
+    if (currentTime < SDL_Weather_80422::_shortestWindTime)
+    {
+      SDL_Weather_80422::_shortestWindTime5 = SDL_Weather_80422::_shortestWindTime4;
+      SDL_Weather_80422::_shortestWindTime4 = SDL_Weather_80422::_shortestWindTime3;
+      SDL_Weather_80422::_shortestWindTime3 = SDL_Weather_80422::_shortestWindTime2;
+      SDL_Weather_80422::_shortestWindTime2 = SDL_Weather_80422::_shortestWindTime;
+      SDL_Weather_80422::_shortestWindTime = currentTime;
+      Serial.println(currentTime);
+
+    }
+
+  }
+  interrupts();
+
+
+}
+
+
+#else
+void serviceInterruptAnem()
+{
+  unsigned long currentTime = (unsigned long)(micros() - lastWindTime);
+
+
+  lastWindTime = micros();
+  if (currentTime > 20000) // debounce
   {
     SDL_Weather_80422::_currentWindCount++;
     if (currentTime < SDL_Weather_80422::_shortestWindTime)
@@ -140,11 +182,41 @@ void ICACHE_RAM_ATTR serviceInterruptAnem()
 
 }
 
+#endif
+
 
 unsigned long currentRainMin;
 unsigned long lastRainTime;
 
+#ifdef ESP8266
 void ICACHE_RAM_ATTR serviceInterruptRain()
+{
+  unsigned long currentTime = (unsigned long) (micros() - lastRainTime);
+
+  lastRainTime = micros();
+  if (currentTime > 500) // debounce
+  {
+
+    SDL_Weather_80422::_currentRainCount++;
+    //      interrupt_count[19]++;
+    if (currentTime < currentRainMin)
+    {
+      currentRainMin = currentTime;
+    }
+
+  }
+
+
+  //  interrupt_count[18]++;
+
+
+
+}
+
+
+#else
+
+void serviceInterruptRain()
 {
   unsigned long currentTime = (unsigned long) (micros() - lastRainTime);
 
@@ -167,9 +239,19 @@ void ICACHE_RAM_ATTR serviceInterruptRain()
 
 }
 
+
+
+#endif
+
+
 long SDL_Weather_80422::_currentWindCount = 0;
 long SDL_Weather_80422::_currentRainCount = 0;
-unsigned long SDL_Weather_80422::_shortestWindTime = 0;
+long SDL_Weather_80422::_shortestWindTime = 1000000;
+long SDL_Weather_80422::_shortestWindTime2 = 1000000;
+long SDL_Weather_80422::_shortestWindTime3 = 1000000;
+long SDL_Weather_80422::_shortestWindTime4 = 1000000;
+long SDL_Weather_80422::_shortestWindTime5 = 1000000;
+long SDL_Weather_80422::_totalWindTime;
 
 
 SDL_Weather_80422::SDL_Weather_80422(int pinAnem, int pinRain, int intAnem, int intRain, int ADChannel, int ADMode)
@@ -184,14 +266,20 @@ SDL_Weather_80422::SDL_Weather_80422(int pinAnem, int pinRain, int intAnem, int 
   _ADMode = ADMode;
 
 
-
   _currentRainCount = 0;
   _currentWindCount = 0;
   _currentWindSpeed = 0.0;
   _currentWindDirection = 0.0;
 
+  _totalWindTime = 0;
+
+
   lastWindTime = 0;
   _shortestWindTime = 0xffffffff;
+  _shortestWindTime2 = 0xffffffff;
+  _shortestWindTime3 = 0xffffffff;
+  _shortestWindTime4 = 0xffffffff;
+  _shortestWindTime5 = 0xffffffff;
 
   _sampleTime = 5.0;
   _selectedMode = SDL_MODE_SAMPLE;
@@ -200,16 +288,28 @@ SDL_Weather_80422::SDL_Weather_80422(int pinAnem, int pinRain, int intAnem, int 
 
   // set up interrupts
 
-
-
-  pinMode(pinAnem, INPUT);	   // pinAnem is input to which a switch is connected
+#ifdef ESP8266
+  pinMode(pinAnem, INPUT);     // pinAnem is input to which a switch is connected
   // digitalWrite(pinAnem, HIGH);   // Configure internal pull-up resistor
-  pinMode(pinRain, INPUT);	   // pinRain is input to which a switch is connected
+  pinMode(pinRain, INPUT);     // pinRain is input to which a switch is connected
   // digitalWrite(pinRain, HIGH);   // Configure internal pull-up resistor
   attachInterrupt(_pinAnem, serviceInterruptAnem, RISING);
   attachInterrupt(_pinRain, serviceInterruptRain, RISING);
 
+#else
 
+  pinMode(pinAnem, INPUT);     // pinAnem is input to which a switch is connected
+  digitalWrite(pinAnem, HIGH);   // Configure internal pull-up resistor
+  pinMode(pinRain, INPUT);     // pinRain is input to which a switch is connected
+  digitalWrite(pinRain, HIGH);   // Configure internal pull-up resistor
+  attachInterrupt(_intAnem, serviceInterruptAnem, RISING);
+  attachInterrupt(_intRain, serviceInterruptRain, RISING);
+
+#endif
+
+
+  if (_ADMode == SDL_MODE_I2C_ADS1015)
+    ads1015.begin();
 }
 
 
@@ -246,11 +346,52 @@ float SDL_Weather_80422::get_wind_gust()
 
 
   unsigned long latestTime;
-  latestTime = _shortestWindTime;
+
+  if (_shortestWindTime2 = 0xffffffff)
+  {
+    _shortestWindTime2 = _shortestWindTime;
+  }
+
+
+  if (_shortestWindTime3 = 0xffffffff)
+  {
+    _shortestWindTime3 = _shortestWindTime2;
+  }
+
+
+  if (_shortestWindTime4 = 0xffffffff)
+  {
+    _shortestWindTime4 = _shortestWindTime3;
+  }
+
+  if (_shortestWindTime5 = 0xffffffff)
+  {
+    _shortestWindTime5 = _shortestWindTime4;
+  }
+  latestTime = (_shortestWindTime + _shortestWindTime2 + _shortestWindTime3 + _shortestWindTime4 + _shortestWindTime5) / 5;
+  //Serial.println("shwt=");
+  //Serial.println(_shortestWindTime);
   _shortestWindTime = 0xffffffff;
+  _shortestWindTime2 = 0xffffffff;
+  _shortestWindTime3 = 0xffffffff;
+  _shortestWindTime4 = 0xffffffff;
+  _shortestWindTime5 = 0xffffffff;
+
   double time = latestTime / 1000000.0; // in microseconds
 
-  return (1 / (time)) * WIND_FACTOR / 2;
+  float returnTime;
+
+#ifdef ESP8266
+  returnTime =  ((1 / (time)) * WIND_FACTOR ) * ESP8266_Factor;
+#else
+  returnTime = (1 / (time)) * WIND_FACTOR ;
+#endif
+
+  if (returnTime < _currentWindSpeed)
+  {
+    returnTime = _currentWindSpeed;
+  }
+  return returnTime;
 
 }
 
@@ -260,15 +401,20 @@ float SDL_Weather_80422::current_wind_direction()
 
   float Vcc = PowerVoltage;
 
+  if (_ADMode == SDL_MODE_I2C_ADS1015)
+  {
+    int value = ads1015.readADC_SingleEnded(1);   // AIN1 wired to wind vane on WeatherPiArduino
+    voltageValue = value * 0.003f;
 
-  int value = ads1015.readADC_SingleEnded(1);   // AIN1 wired to wind vane on WeatherPiArduino
-  voltageValue = value * 0.003f;
+  }
+  else
+  {
+    // use internal A/D converter
 
-  //Serial.print("ADC Value =");
-  //Serial.print(value);
-  //Serial.print(" VoltageValue = ");
-  //Serial.println(voltageValue);
+    voltageValue = (analogRead(_ADChannel) / 1023.0) * Vcc;
 
+
+  }
 
   float direction = voltageToDegrees(voltageValue, _currentWindDirection);
 
@@ -282,10 +428,20 @@ float SDL_Weather_80422::current_wind_direction_voltage()
 
   float Vcc = PowerVoltage;
 
-  int value = ads1015.readADC_SingleEnded(1);   // AIN1 wired to wind vane on WeatherPiArduino
-  voltageValue = value * 0.003f;
+  if (_ADMode == SDL_MODE_I2C_ADS1015)
+  {
+    int value = ads1015.readADC_SingleEnded(1);   // AIN1 wired to wind vane on WeatherPiArduino
+    voltageValue = value * 0.003f;
+
+  }
+  else
+  {
+    // use internal A/D converter
+
+    voltageValue = (analogRead(_ADChannel) / 1023.0) * Vcc;
 
 
+  }
 
 
   return voltageValue;
@@ -317,7 +473,8 @@ void SDL_Weather_80422::startWindSample(float sampleTime)
 
 }
 
-
+// Factor dervied from empherical analysis.  The ESP8266 screws with interrupt timing
+#define ESP8266_Factor 0.298
 
 float SDL_Weather_80422::get_current_wind_speed_when_sampling()
 {
@@ -332,10 +489,25 @@ float SDL_Weather_80422::get_current_wind_speed_when_sampling()
     //     _timeSpan = (unsigned long)(micros() - _startSampleTime);
     _timeSpan = (micros() - _startSampleTime);
 
+#ifdef ESP8266
+    _currentWindSpeed = (((float)_currentWindCount / (_timeSpan)) * WIND_FACTOR * 1000000) * ESP8266_Factor;
+#else
     _currentWindSpeed = ((float)_currentWindCount / (_timeSpan)) * WIND_FACTOR * 1000000;
+#endif
+
+    float _averageWindTime;
+    _averageWindTime = (float)_totalWindTime / (float)_currentWindCount;
+    /*
+        Serial.print("TotalWindTime=");
+        Serial.print(_totalWindTime);
+        Serial.print(" _currentWindCount=");
+        Serial.print(_currentWindCount);
+        Serial.print(" _averageWindTime=");
+        Serial.println(_averageWindTime);
+    */
 
     _currentWindCount = 0;
-
+    _totalWindTime = 0;
     _startSampleTime = micros();
 
 
