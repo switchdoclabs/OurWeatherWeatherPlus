@@ -1,5 +1,5 @@
 // Filename WeatherPlus.ino
-// Version 1.22 July 2017
+// Version 1.23 August 2017
 // SwitchDoc Labs, LLC
 //
 
@@ -10,7 +10,7 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "022"
+#define WEATHERPLUSESP8266VERSION "023"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 #undef DEBUGPRINT
@@ -327,7 +327,9 @@ bool AirQualityPresent = false;
 #include "SDL_Weather_80422.h"
 
 
-SDL_Weather_80422 weatherStation(pinAnem, pinRain, 0, 0, A0, SDL_MODE_INTERNAL_AD );
+//SDL_Weather_80422 weatherStation(pinAnem, pinRain, 0, 0, A0, SDL_MODE_INTERNAL_AD );
+SDL_Weather_80422 weatherStation(pinAnem, pinRain, 0, 0, A0, SDL_MODE_I2C_ADS1015 );
+
 
 // SDL_MODE_I2C_ADS1015
 //

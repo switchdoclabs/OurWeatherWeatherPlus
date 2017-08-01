@@ -6,6 +6,10 @@ Arduino IDE software designed for the ESP8266 on the WeatherPlus Board and the O
 www.switchdoc.com
 July 2017 
 
+Current Version 023 - August 1, 2017
+
+- Fixed Wind direction bug - changed to Internal ADC1015
+
 Current Version 022 - July 20, 2017
 
 -Improved accuracy for Wind Speed and Wind Gust<BR>
