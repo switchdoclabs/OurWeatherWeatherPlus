@@ -171,11 +171,36 @@ void updateDisplay(int displayMode)
       }
       break;
 
+    case DISPLAY_SDL2PUBNUBCODE:
+
+      {
+        if (pubNubEnabled == 1)
+        {
+          setDisplayLine(0, "PubNub Enabled");
+          setDisplayLine(1, "Pubnub Publish Code:");
+          buffer[0] = '\0';
+          strcpy(buffer, SDL2PubNubCode.c_str() );
+          setDisplayLine(2, buffer);
+          setDisplayLine(3, "");
+
+        }
+        else
+        {
+          setDisplayLine(0, "PubNub Disabled");
+          setDisplayLine(1, "");
+          setDisplayLine(2, "");
+          setDisplayLine(3, "");
+        }
+        delay(2000);
+      }
+      break;
+
+
     case DISPLAY_SUNAIRPLUS:
 
       {
         setDisplayLine(0, "Solar Readings");
-       setDisplayLine(1, "----------------");
+        setDisplayLine(1, "----------------");
 
         String stringSolar;
         stringSolar = "Battery:" + String(BatteryVoltage, 2) + "V/" + String(BatteryCurrent, 1) + "mA";
@@ -192,12 +217,12 @@ void updateDisplay(int displayMode)
 
       }
       break;
-      
+
     case DISPLAY_WXLINK:
 
       {
         setDisplayLine(0, "WXLink Readings");
-       setDisplayLine(1, "----------------");
+        setDisplayLine(1, "----------------");
 
         String stringSolar;
         stringSolar = "Battery:" + String(WXBatteryVoltage, 2) + "V/" + String(WXBatteryCurrent, 1) + "mA";
@@ -208,8 +233,8 @@ void updateDisplay(int displayMode)
 
         stringSolar = "Load:" + String(WXLoadCurrent, 1) + "mA";
         setDisplayLine(4, const_cast<char*>(stringSolar.c_str()) );
-        
-      setDisplayLine(5, "----------------");
+
+        setDisplayLine(5, "----------------");
 
         stringSolar = "MessageID: " + String(WXMessageID);
         setDisplayLine(6, const_cast<char*>(stringSolar.c_str()) );
@@ -893,6 +918,7 @@ void writeAllDisplayLines(int DisplayMode)
     case DISPLAY_ACCESSPOINT:
     case DISPLAY_TRYING_AP:
     case DISPLAY_FAILING_AP:
+    case DISPLAY_SDL2PUBNUBCODE:
 
 
       {
@@ -938,8 +964,8 @@ void writeAllDisplayLines(int DisplayMode)
         }
       }
       break;
-      
-   case DISPLAY_WXLINK:
+
+    case DISPLAY_WXLINK:
       {
         int textSize = 1;
         display.setTextSize(textSize);

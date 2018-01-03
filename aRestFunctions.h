@@ -144,7 +144,7 @@ int setWUSID(String command)
   else
     return 0;
 
-    
+
   return 1;
 
 }
@@ -170,7 +170,7 @@ int setWUKEY(String command)
   else
     return 0;
 
-    
+
   return 1;
 
 }

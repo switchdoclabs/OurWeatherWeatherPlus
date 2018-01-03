@@ -1,5 +1,5 @@
 // Filename WeatherPlus.ino
-// Version 1.23 August 2017
+// Version 2.26 January 2018
 // SwitchDoc Labs, LLC
 //
 
@@ -10,11 +10,17 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "023"
+#define WEATHERPLUSESP8266VERSION "026"
+
+#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER026"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
+
 #undef DEBUGPRINT
 
+#undef PUBNUB_DEBUG
+
+//#define PUBNUB_PUBKEY "pub-c-438d30e4-b1d7-42b8-8aeb-9c77aa550ff3"
 
 // Change this to undef if you don't have the OLED present0
 #define OLED_Present
@@ -33,6 +39,8 @@ extern "C" {
 }
 //#include "Time/TimeLib.h"
 #include "TimeLib.h"
+
+bool WiFiPresent = false;
 
 #include <ESP8266WiFi.h>
 
@@ -70,6 +78,35 @@ void configModeCallback ()
 
 #include "config.h"
 
+int pubNubEnabled;
+
+String SDL2PubNubCode  = "";
+String SDL2PubNubCode_Sub = "";
+
+
+#define PUBLISHINTERVALSECONDS 30
+
+
+#define PubNub_BASE_CLIENT WiFiClient
+
+#define PUBNUB_DEFINE_STRSPN_AND_STRNCASECMP
+
+#include "PubNub.h"
+
+
+
+
+
+
+//
+
+char channel1[]  = "OWIOT1";
+char uuid[]   = WEATHERPLUSPUBNUBPROTOCOL;
+
+
+
+
+
 
 
 
@@ -84,6 +121,10 @@ void configModeCallback ()
 #include "aREST.h"
 
 #include <String.h>
+
+
+
+
 
 // display modes
 #define DISPLAY_POWERUP 0
@@ -103,6 +144,7 @@ void configModeCallback ()
 #define DISPLAY_UPDATE_FINISHED 14
 #define DISPLAY_SUNAIRPLUS 16
 #define DISPLAY_WXLINK 17
+#define DISPLAY_SDL2PUBNUBCODE 18
 
 #define DEBUG
 
@@ -115,6 +157,11 @@ void configModeCallback ()
 String RestTimeStamp;
 String RestDataString;
 String Version;
+
+
+
+
+
 
 //----------------------------------------------------------------------
 //Local WiFi
@@ -203,25 +250,25 @@ const char *monthName[12] = {
 
 // MOD1016-G Lightning Detector AS3935
 /*
-#include "AS3935.h"
+  #include "AS3935.h"
 
-void printAS3935Registers();
-
-
-// Interrupt handler for AS3935 irqs
-// and flag variable that indicates interrupt has been triggered
-// Variables that get changed in interrupt routines need to be declared volatile
-// otherwise compiler can optimize them away, assuming they never get changed
-void AS3935Irq();
-volatile int AS3935IrqTriggered;
-
-// Library object initialization First argument is interrupt pin, second is device I2C address
-AS3935 AS3935(3, 0x03);
+  void printAS3935Registers();
 
 
+  // Interrupt handler for AS3935 irqs
+  // and flag variable that indicates interrupt has been triggered
+  // Variables that get changed in interrupt routines need to be declared volatile
+  // otherwise compiler can optimize them away, assuming they never get changed
+  void AS3935Irq();
+  volatile int AS3935IrqTriggered;
 
-void printAS3935Registers()
-{
+  // Library object initialization First argument is interrupt pin, second is device I2C address
+  AS3935 AS3935(3, 0x03);
+
+
+
+  void printAS3935Registers()
+  {
   int noiseFloor = AS3935.getNoiseFloor();
   int spikeRejection = AS3935.getSpikeRejection();
   int watchdogThreshold = AS3935.getWatchdogThreshold();
@@ -231,14 +278,14 @@ void printAS3935Registers()
   Serial.println(spikeRejection, DEC);
   Serial.print("Watchdog threshold is: ");
   Serial.println(watchdogThreshold, DEC);
-}
+  }
 
-// this is irq handler for AS3935 interrupts, has to return void and take no arguments
-// always make code in interrupt handlers fast and short
-void AS3935Irq()
-{
+  // this is irq handler for AS3935 interrupts, has to return void and take no arguments
+  // always make code in interrupt handlers fast and short
+  void AS3935Irq()
+  {
   AS3935IrqTriggered = 1;
-}
+  }
 */
 
 // Station Name
@@ -313,7 +360,7 @@ int pinRain = 12;
 Adafruit_ADS1015 ads1015(0x49);
 
 int current_quality = -1;
-Adafruit_ADS1115 adsAirQuality(0x48);
+Adafruit_ADS1115 adsAirQuality(0x4A);
 
 
 
@@ -392,6 +439,11 @@ float lastRain;
 
 #include "aRestFunctions.h"
 
+
+#include "SDL2PubNub.h"
+
+
+
 // SunAirPlus
 
 bool SunAirPlus_Present;
@@ -458,7 +510,7 @@ ESP_SSD1306 display(OLED_RESET);
 
 //
 //
-// setup()
+
 //
 //
 #ifdef DEBUGPRINT
@@ -520,6 +572,8 @@ bool scanAddressForI2CBus(byte from_addr)
 
 
 RtcDateTime lastBoot;
+
+
 void setup() {
 
 
@@ -620,6 +674,7 @@ void setup() {
   Rtc.SetSquareWavePin(DS3231SquareWavePin_ModeNone);
 
 
+
   EEPROM.begin(512);
 
 #ifdef OLED_Present
@@ -674,6 +729,9 @@ void setup() {
     //delay(1000);
   }
 
+  if (WiFi.status()  == WL_CONNECTED)
+
+    WiFiPresent = true;
 
 
   writeEEPROMState();
@@ -780,6 +838,11 @@ void setup() {
 
   rest.function("MetricUnits",   metricUnitControl);
 
+  // PubNub
+
+  rest.function("EnablePubNub", enableDisableSDL2PubNub);
+
+  rest.function("SendPubNubState", sendStateSDL2PubNub);
 
 
   // Give name and ID to device
@@ -895,6 +958,10 @@ void setup() {
 
   updateDisplay(DISPLAY_IPDISPLAY);
 
+  // Now put PUBNUB Code up there
+
+  updateDisplay(DISPLAY_SDL2PUBNUBCODE);
+
 
   timeElapsed = 0;
 
@@ -967,6 +1034,16 @@ void setup() {
   dewpoint = 0.0;
 
 
+  if (WiFiPresent == true)
+  {
+
+    PubNub.begin(SDL2PubNubCode.c_str(), SDL2PubNubCode_Sub.c_str());
+
+    Serial.println("PubNub set up");
+  }
+
+
+
 
 
 }
@@ -984,11 +1061,21 @@ void loop() {
   //Serial.println("Starting Main Loop");
   // Handle REST calls
   WiFiClient client = server.available();
+
+  int timeout;
+  timeout = 0;
   if (client)
   {
 
+    // Thank you to MAKA69 for this suggestion
     while (!client.available()) {
+      Serial.print(".");
       delay(1);
+      timeout++;
+      if (timeout > 1000) {
+        Serial.print("INFINITE LOOP BREAK!");
+        break;
+      }
     }
     if (client.available())
     {
@@ -1235,7 +1322,9 @@ void loop() {
       Serial.print("ad2=");
       Serial.println(ad2);
       Serial.print("ad3=");
+
       Serial.println(ad3);
+
 
 
       int16_t ad0_0x49 = ads1015.readADC_SingleEnded(0);
@@ -1278,20 +1367,22 @@ void loop() {
 
       SolarPanelVoltage = SunAirPlus.getBusVoltage_V(SOLAR_CELL_CHANNEL);
       SolarPanelCurrent = -SunAirPlus.getCurrent_mA(SOLAR_CELL_CHANNEL);
-      /*
-            Serial.println("");
-            Serial.print("LIPO_Battery Load Voltage:  "); Serial.print(BatteryVoltage); Serial.println(" V");
-            Serial.print("LIPO_Battery Current:       "); Serial.print(BatteryCurrent); Serial.println(" mA");
-            Serial.println("");
 
-            Serial.print("Solar Panel Voltage:   "); Serial.print(SolarPanelVoltage); Serial.println(" V");
-            Serial.print("Solar Panel Current:   "); Serial.print(SolarPanelCurrent); Serial.println(" mA");
-            Serial.println("");
+#ifdef DEBUGPRINT
+      Serial.println("");
+      Serial.print("LIPO_Battery Load Voltage:  "); Serial.print(BatteryVoltage); Serial.println(" V");
+      Serial.print("LIPO_Battery Current:       "); Serial.print(BatteryCurrent); Serial.println(" mA");
+      Serial.println("");
 
-            Serial.print("Load Voltage:   "); Serial.print(LoadVoltage); Serial.println(" V");
-            Serial.print("Load Current:   "); Serial.print(LoadCurrent); Serial.println(" mA");
-            Serial.println("");
-      */
+      Serial.print("Solar Panel Voltage:   "); Serial.print(SolarPanelVoltage); Serial.println(" V");
+      Serial.print("Solar Panel Current:   "); Serial.print(SolarPanelCurrent); Serial.println(" mA");
+      Serial.println("");
+
+      Serial.print("Load Voltage:   "); Serial.print(LoadVoltage); Serial.println(" V");
+      Serial.print("Load Current:   "); Serial.print(LoadCurrent); Serial.println(" mA");
+      Serial.println("");
+#endif
+
     }
     else
     {
@@ -1558,6 +1649,7 @@ void loop() {
       RestDataString += "WXLMB ,";
     }
 
+     RestDataString += String(pubNubEnabled);
 
     if (timeElapsed300Seconds > 300000)
     {
@@ -1615,7 +1707,7 @@ void loop() {
         Serial.println("WeatherUnderground Data New - sent");
       else
         Serial.println("WeatherUnderground Data Stale - Not sent");
-        
+
       if (dataStale == false)
       {
         if (sendWeatherUndergroundData() == 0)
@@ -1626,7 +1718,20 @@ void loop() {
 
 
       }
+
+      // send data up to PubNub
+
+      if (pubNubEnabled == 1)
+      {
+
+        String SendString = "{\"FullDataString\": \"" + RestDataString + "\"}"; //Send the request
+
+        // publish it
+
+        publishPubNubMessage(SendString);
+      }
     }
+
 
     updateDisplay(WeatherDisplayMode);
 
@@ -1663,6 +1768,8 @@ void loop() {
 
       }
     }
+
+
     Serial.println("OutOfDisplay");
 
   }

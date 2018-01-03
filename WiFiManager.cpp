@@ -184,6 +184,9 @@ boolean WiFiManager::autoConnect(char const *apName, char const *apPassword) {
   if (connectWifi(Wssid.c_str(), WPassword.c_str()) == WL_CONNECTED)   {
     DEBUG_WM(F("IP Address:"));
     DEBUG_WM(WiFi.localIP());
+    
+
+    
     //connected
     return true;
   }

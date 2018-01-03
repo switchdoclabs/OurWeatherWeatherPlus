@@ -88,6 +88,29 @@ void writeEEPROMState()
   }
   EEPROM.write(i, '\0');
 
+  // Now PubNub
+
+  EEPROM.write(216, pubNubEnabled);
+
+
+
+  for (i = 217; i < SDL2PubNubCode.length() + 217; i++)
+  {
+    EEPROM.write(i, SDL2PubNubCode[i - 217]);
+
+
+  }
+  EEPROM.write(i, '\0');
+
+  for (i = i; i < SDL2PubNubCode_Sub.length() + 261; i++)
+  {
+    EEPROM.write(i, SDL2PubNubCode_Sub[i - 261]);
+
+
+  }
+  EEPROM.write(i, '\0');
+
+
 
   EEPROM.commit();
 
@@ -120,6 +143,12 @@ void writeEEPROMState()
   Serial.print("WeatherUnderground Station KEY:");
   Serial.println(WeatherUnderground_StationKey.substring(0, 2) + "******");
 
+  Serial.print("pubNubEnabled=");
+  Serial.println(pubNubEnabled);
+  Serial.print("SDL2PubNubCode=");
+  Serial.println(SDL2PubNubCode);
+  Serial.print("SDL2PubNubCode_Sub=");
+  Serial.println(SDL2PubNubCode_Sub);
 }
 
 
@@ -223,7 +252,40 @@ void readEEPROMState()
       WeatherUnderground_StationKey += myChar;
     }
 
+    pubNubEnabled = EEPROM.read(216);
 
+    if (pubNubEnabled != 1)
+    {
+      pubNubEnabled = 0;
+    }
+
+    SDL2PubNubCode = "";
+    if (pubNubEnabled == 1)
+    {
+      for (i = 217; i < 217 + 43; ++i)
+      {
+        myChar = EEPROM.read(i);
+        if (myChar == 0)
+          break;
+        SDL2PubNubCode += myChar;
+      }
+    }
+    else
+      SDL2PubNubCode = "XX";
+
+    SDL2PubNubCode_Sub = "";
+    if (pubNubEnabled == 1)
+    {
+      for (i = 261; i < 261 + 43; ++i)
+      {
+        myChar = EEPROM.read(i);
+        if (myChar == 0)
+          break;
+        SDL2PubNubCode_Sub += myChar;
+      }
+    }
+    else
+      SDL2PubNubCode_Sub = "XX";
   }
   else
   {
@@ -234,10 +296,16 @@ void readEEPROMState()
     WeatherDisplayMode = DISPLAY_WEATHER_LARGE;
     stationName = "";
     altitude_meters = 637.0;  // default to 611
-    writeEEPROMState();
+
     adminPassword = "admin";
     WeatherUnderground_StationID = "";
     WeatherUnderground_StationKey = "";
+    pubNubEnabled = 0;
+    SDL2PubNubCode = "XX";
+    SDL2PubNubCode_Sub = "XX";
+    writeEEPROMState();
+
+
 
   }
   Serial.println("Reading EEPROM");
@@ -262,6 +330,12 @@ void readEEPROMState()
   Serial.println(WeatherUnderground_StationID);
   Serial.print("WeatherUnderground Station KEY:");
   Serial.println(WeatherUnderground_StationKey.substring(0, 2) + "******");
+  Serial.print("pubNubEnabled=");
+  Serial.println(pubNubEnabled);
+  Serial.print("SDL2PubNubCode=");
+  Serial.println(SDL2PubNubCode);
+  Serial.print("SDL2PubNubCode_Sub=");
+  Serial.println(SDL2PubNubCode_Sub);
 }
 
 

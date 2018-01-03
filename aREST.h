@@ -77,8 +77,8 @@
 #endif
 
 // Size of name & ID
-#define NAME_SIZE 25
-#define ID_SIZE 15
+#define NAME_SIZE 30
+#define ID_SIZE 30
 
 // Debug mode
 #ifndef DEBUG_MODE
@@ -93,7 +93,7 @@
 // Default number of max. exposed variables
 #ifndef NUMBER_VARIABLES
   #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266) || !defined(ADAFRUIT_CC3000_H)
-  #define NUMBER_VARIABLES 22
+  #define NUMBER_VARIABLES 27
   #else
   #define NUMBER_VARIABLES 5
   #endif
@@ -102,7 +102,7 @@
 // Default number of max. exposed functions
 #ifndef NUMBER_FUNCTIONS
   #if defined(__AVR_ATmega1280__) || defined(__AVR_ATmega2560__) || defined(CORE_WILDFIRE) || defined(ESP8266)
-  #define NUMBER_FUNCTIONS 24
+  #define NUMBER_FUNCTIONS 27
   #else
   #define NUMBER_FUNCTIONS 5
   #endif
