@@ -10,9 +10,9 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "026"
+#define WEATHERPLUSESP8266VERSION "027"
 
-#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER026"
+#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER027"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 
@@ -20,7 +20,7 @@
 
 #undef PUBNUB_DEBUG
 
-//#define PUBNUB_PUBKEY "pub-c-438d30e4-b1d7-42b8-8aeb-9c77aa550ff3"
+
 
 // Change this to undef if you don't have the OLED present0
 #define OLED_Present
@@ -1651,7 +1651,8 @@ void loop() {
 
      RestDataString += String(pubNubEnabled);
 
-    if (timeElapsed300Seconds > 300000)
+   if (timeElapsed300Seconds > 300000)
+
     {
 
 
@@ -1718,6 +1719,8 @@ void loop() {
 
 
       }
+
+        delay(2000);
 
       // send data up to PubNub
 

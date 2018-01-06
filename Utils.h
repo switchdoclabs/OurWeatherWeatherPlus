@@ -90,21 +90,21 @@ void writeEEPROMState()
 
   // Now PubNub
 
-  EEPROM.write(216, pubNubEnabled);
+  EEPROM.write(231, pubNubEnabled);
 
 
 
-  for (i = 217; i < SDL2PubNubCode.length() + 217; i++)
+  for (i = 232; i < SDL2PubNubCode.length() + 232; i++)
   {
-    EEPROM.write(i, SDL2PubNubCode[i - 217]);
+    EEPROM.write(i, SDL2PubNubCode[i - 232]);
 
 
   }
   EEPROM.write(i, '\0');
 
-  for (i = i; i < SDL2PubNubCode_Sub.length() + 261; i++)
+  for (i = 275; i < SDL2PubNubCode_Sub.length() + 275; i++)
   {
-    EEPROM.write(i, SDL2PubNubCode_Sub[i - 261]);
+    EEPROM.write(i, SDL2PubNubCode_Sub[i - 275]);
 
 
   }
@@ -252,7 +252,7 @@ void readEEPROMState()
       WeatherUnderground_StationKey += myChar;
     }
 
-    pubNubEnabled = EEPROM.read(216);
+    pubNubEnabled = EEPROM.read(231);
 
     if (pubNubEnabled != 1)
     {
@@ -262,7 +262,7 @@ void readEEPROMState()
     SDL2PubNubCode = "";
     if (pubNubEnabled == 1)
     {
-      for (i = 217; i < 217 + 43; ++i)
+      for (i = 232; i < 232 + 43; ++i)
       {
         myChar = EEPROM.read(i);
         if (myChar == 0)
@@ -276,7 +276,7 @@ void readEEPROMState()
     SDL2PubNubCode_Sub = "";
     if (pubNubEnabled == 1)
     {
-      for (i = 261; i < 261 + 43; ++i)
+      for (i = 275; i < 275 + 43; ++i)
       {
         myChar = EEPROM.read(i);
         if (myChar == 0)

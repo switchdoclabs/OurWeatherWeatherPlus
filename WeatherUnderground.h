@@ -63,7 +63,7 @@ int sendWeatherUndergroundData()
   client.print(String("GET ") + myURL + " HTTP/1.1\r\n" +
                "Host: " + host + "\r\n" +
                "Connection: close\r\n\r\n");
-  delay(500);
+  delay(1500);
 
 String WUResult;
 

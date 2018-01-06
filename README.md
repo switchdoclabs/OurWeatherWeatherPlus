@@ -6,6 +6,10 @@ Arduino IDE software designed for the ESP8266 on the WeatherPlus Board and the O
 www.switchdoc.com
 January 2018 
 
+Current Version 027 - January 5, 2018
+
+- Fixed WeatherUnderGround EEPROM Corruption bug introduced in V026 
+
 Current Version 026 - January 3, 2018
 
 - Added MQTT to PubNub for OurWeather to Alexa interface 

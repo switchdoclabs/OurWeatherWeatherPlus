@@ -176,7 +176,7 @@ void updateDisplay(int displayMode)
       {
         if (pubNubEnabled == 1)
         {
-          setDisplayLine(0, "PubNub Enabled");
+          setDisplayLine(0, "Alexa Enabled");
           setDisplayLine(1, "Pubnub Publish Code:");
           buffer[0] = '\0';
           strcpy(buffer, SDL2PubNubCode.c_str() );
@@ -186,7 +186,7 @@ void updateDisplay(int displayMode)
         }
         else
         {
-          setDisplayLine(0, "PubNub Disabled");
+          setDisplayLine(0, "Alexa Disabled");
           setDisplayLine(1, "");
           setDisplayLine(2, "");
           setDisplayLine(3, "");
