@@ -1,18 +1,15 @@
 // Filename WeatherPlus.ino
-// Version 2.26 January 2018
+// Version 2.28 February 2018
 // SwitchDoc Labs, LLC
 //
 
 //
-// Started From:
-// Filename ArduinoConnectServer.ino
-// Version 1.5 08/15/13 RV MiloCreek
 //
 
 
-#define WEATHERPLUSESP8266VERSION "027"
+#define WEATHERPLUSESP8266VERSION "028"
 
-#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER027"
+#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER028"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 
@@ -513,18 +510,31 @@ ESP_SSD1306 display(OLED_RESET);
 
 //
 //
-#ifdef DEBUGPRINT
-long AM2315BadCount;
-long AM2315TotalCount;
-byte FirstBadReply[10];
-#endif
 
-// validate temperature from AM2315 - Fixes the rare +32 degrees C issue
+
+// validate temperature from AM2315 - Fixes the rare +16 degrees C issue
 bool invalidTemperatureFound;
 
 float validateTemperature(float incomingTemperature)
 {
-  if (incomingTemperature > AM2315_Temperature + 20.0) // check for large jump in temperature
+  if (incomingTemperature > AM2315_Temperature + 15.0) // check for large jump in temperature
+  {
+    // OK, we may have an invalid temperature.  Make sure this is not a startup (current humidity will be 0.0 if startup)
+    if (AM2315_Humidity < 0.1)
+    {
+      // we are in startup phase, so accept temperature
+      invalidTemperatureFound = false;
+      return incomingTemperature;
+    }
+    else
+    {
+      // we have an issue with a bad read (typically a +32 degrees C increase)
+      // so send last good temperature back and flag a bad temperature
+      invalidTemperatureFound = true;
+      return AM2315_Temperature;
+    }
+  }
+    if (incomingTemperature < AM2315_Temperature - 15.0) // check for large decrease in temperature
   {
     // OK, we may have an invalid temperature.  Make sure this is not a startup (current humidity will be 0.0 if startup)
     if (AM2315_Humidity < 0.1)
@@ -584,13 +594,7 @@ void setup() {
   WiFi.persistent(false);
 
 
-#ifdef DEBUGPRINT
-  AM2315BadCount = -1;
-  AM2315TotalCount = 0;
 
-  for (uint8_t i = 0; i < 10; i++)
-    FirstBadReply[i] = 0;
-#endif
 
   BMP180Found = false;
   BMP280Found = false;
@@ -1015,7 +1019,7 @@ void setup() {
     //Serial.print("TempF: "); Serial.println(dataAM2315[0]);
 
 
-    AM2315_Temperature = validateTemperature(dataAM2315[1]);
+    AM2315_Temperature = dataAM2315[1];
     AM2315_Humidity = dataAM2315[0];
     dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
 
@@ -1139,25 +1143,15 @@ void loop() {
       Serial.print("AOK=");
       Serial.println(AOK);
 #endif
-      AM2315_Temperature = validateTemperature(dataAM2315[1]);
+      AM2315_Temperature = dataAM2315[1];
       AM2315_Humidity = dataAM2315[0];
       dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
-#ifdef DEBUGPRINT
-      Serial.print("FBRi=");
-      for (uint8_t i = 0; i < 10; i++)
-      {
 
-        Serial.print(FirstBadReply[i], HEX);
-        Serial.print(" ");
-      }
-      Serial.println();
-#endif
       Serial.print("Temp: "); Serial.println(AM2315_Temperature);
       Serial.print("Hum: "); Serial.println(AM2315_Humidity);
       Serial.print("DwPt: "); Serial.println(dewpoint);
 #ifdef DEBUGPRINT
-      Serial.print("AM2315TotalCount="); Serial.println(AM2315TotalCount);
-      Serial.print("AM2315BadCount="); Serial.println(AM2315BadCount);
+  am2315.printStatistics();
 #endif
     }
     else

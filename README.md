@@ -6,6 +6,10 @@ Arduino IDE software designed for the ESP8266 on the WeatherPlus Board and the O
 www.switchdoc.com
 January 2018 
 
+Current Version 028 - February 12, 2018
+
+- Fixed AM2315 corruption bug - improved reliablity
+
 Current Version 027 - January 5, 2018
 
 - Fixed WeatherUnderGround EEPROM Corruption bug introduced in V026 

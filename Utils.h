@@ -391,7 +391,7 @@ void updateAllWeatherVariables()
   heapSize = ESP.getFreeHeap();
 
   AOK = am2315.readData(dataAM2315);
-  AM2315_Temperature = validateTemperature(dataAM2315[1]);
+  AM2315_Temperature = dataAM2315[1];
   AM2315_Humidity = dataAM2315[0];
 
   if (BMP180Found)
