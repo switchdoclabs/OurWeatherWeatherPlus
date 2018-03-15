@@ -1,5 +1,5 @@
 // Filename WeatherPlus.ino
-// Version 2.28 February 2018
+// Version 2.29 March 2018
 // SwitchDoc Labs, LLC
 //
 
@@ -7,9 +7,9 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "028"
+#define WEATHERPLUSESP8266VERSION "029"
 
-#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER028"
+#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER029"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 
@@ -740,7 +740,9 @@ void setup() {
 
   writeEEPROMState();
 
-
+  Serial.print("WiFi Channel= ");
+  Serial.println(WiFi.channel());
+  
   blinkLED(2, 300);  // blink twice - OK!
   heapSize = ESP.getFreeHeap();
 
@@ -1046,6 +1048,8 @@ void setup() {
     Serial.println("PubNub set up");
   }
 
+
+ 
 
 
 
