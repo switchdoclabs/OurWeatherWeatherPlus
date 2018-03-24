@@ -142,6 +142,7 @@ void WiFiManager::setupConfigPortal() {
 
 #define DISPLAY_TRYING_AP 8
 #define DISPLAY_FAILING_AP 9
+#define DISPLAY_FAILED_RECONNECT 19
 
   updateDisplay(DISPLAY_ACCESSPOINT);
 
@@ -178,15 +179,15 @@ boolean WiFiManager::autoConnect(char const *apName, char const *apPassword) {
 
   }
 
- //   if (connectWifi("", "") == WL_CONNECTED)   {
+  //   if (connectWifi("", "") == WL_CONNECTED)   {
   DEBUG_WM(F("Past the disconnect"));
 
   if (connectWifi(Wssid.c_str(), WPassword.c_str()) == WL_CONNECTED)   {
     DEBUG_WM(F("IP Address:"));
     DEBUG_WM(WiFi.localIP());
-    
 
-    
+
+
     //connected
     return true;
   }
@@ -195,6 +196,47 @@ boolean WiFiManager::autoConnect(char const *apName, char const *apPassword) {
   updateDisplay(DISPLAY_ACCESSPOINT);
   return startConfigPortal(apName, apPassword);
 }
+
+boolean WiFiManager::justConnect(char const *apName, char const *apPassword)
+{
+  DEBUG_WM(F(""));
+  DEBUG_WM(F("justConnect"));
+
+  // read eeprom for ssid and pass
+  //String ssid = getSSID();
+  //String pass = getPassword();
+  DEBUG_WM(Wssid);
+  DEBUG_WM(apName);
+  DEBUG_WM(apPassword);
+
+  // attempt to connect; should it fail, fail
+
+  WiFi.mode(WIFI_STA);
+
+  if (connectWifi(Wssid.c_str(), WPassword.c_str()) == WL_CONNECTED)   {
+    DEBUG_WM(F("IP Address:"));
+    DEBUG_WM(WiFi.localIP());
+
+
+
+    //connected
+    return true;
+  }
+  else
+  {
+    updateDisplay(DISPLAY_FAILED_RECONNECT);
+    blinkLED(6, 200);  // blink 5, Did not connect setting up AP mode
+    updateDisplay(DISPLAY_FAILED_RECONNECT);
+
+  }
+
+
+  DEBUG_WM(F("Past the disconnect"));
+
+
+  return false;
+}
+
 
 boolean  WiFiManager::startConfigPortal(char const *apName, char const *apPassword) {
   //setup AP
@@ -278,12 +320,12 @@ int WiFiManager::connectWifi(String ssid, String pass) {
   } else {
     if (WiFi.SSID()) {
       /* DEBUG_WM("Using last saved values, should be faster");
-      //trying to fix connection in progress hanging
-      ETS_UART_INTR_DISABLE();
-      wifi_station_disconnect();
-      ETS_UART_INTR_ENABLE();
+        //trying to fix connection in progress hanging
+        ETS_UART_INTR_DISABLE();
+        wifi_station_disconnect();
+        ETS_UART_INTR_ENABLE();
 
-      WiFi.begin();
+        WiFi.begin();
       */
     } else {
       DEBUG_WM("No saved credentials");

@@ -6,6 +6,10 @@ Arduino IDE software designed for the ESP8266 on the WeatherPlus Board and the O
 www.switchdoc.com
 March 2018 
 
+Current Version 030 - March 24, 2018
+
+- Adding WiFi Reconnect code - only after success on an AP 
+
 Current Version 029 - March 15, 2018
 
 - Changed Alexa to PubNub to be compatible with March 1, 2018 PubNub changE

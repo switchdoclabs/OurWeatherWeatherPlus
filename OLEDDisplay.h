@@ -156,6 +156,19 @@ void updateDisplay(int displayMode)
 
       }
       break;
+      
+          case DISPLAY_FAILED_RECONNECT:
+      {
+
+        setDisplayLine(0,  "Failing to reconnect to WiFI");
+        buffer[0] = '\0';
+        strcpy(buffer, Wssid.c_str());
+        setDisplayLine(1, buffer);
+        buffer[0] = '\0';
+        setDisplayLine(3, "Will try again....");
+
+      }
+      break;
 
     case DISPLAY_IPDISPLAY:
 
@@ -919,6 +932,7 @@ void writeAllDisplayLines(int DisplayMode)
     case DISPLAY_TRYING_AP:
     case DISPLAY_FAILING_AP:
     case DISPLAY_SDL2PUBNUBCODE:
+    case DISPLAY_FAILED_RECONNECT:
 
 
       {

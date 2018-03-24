@@ -111,7 +111,9 @@ class WiFiManager
 
     boolean       autoConnect();
     boolean       autoConnect(char const *apName, char const *apPassword = NULL);
+    boolean       justConnect(char const *apName, char const *apPassword = NULL);
 
+    
     //if you want to always start the config portal, without trying to connect first
     boolean       startConfigPortal(char const *apName, char const *apPassword = NULL);
 

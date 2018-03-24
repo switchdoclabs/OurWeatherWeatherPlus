@@ -1,5 +1,5 @@
 // Filename WeatherPlus.ino
-// Version 2.29 March 2018
+// Version 030 March 2018
 // SwitchDoc Labs, LLC
 //
 
@@ -7,9 +7,9 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "029"
+#define WEATHERPLUSESP8266VERSION "030"
 
-#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER029"
+#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER030"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 
@@ -142,6 +142,7 @@ char uuid[]   = WEATHERPLUSPUBNUBPROTOCOL;
 #define DISPLAY_SUNAIRPLUS 16
 #define DISPLAY_WXLINK 17
 #define DISPLAY_SDL2PUBNUBCODE 18
+#define DISPLAY_FAILED_RECONNECT 19
 
 #define DEBUG
 
@@ -173,6 +174,9 @@ String WPassword;
 
 WiFiServer server(WEB_SERVER_PORT);
 
+IPAddress myConnectedIp;
+IPAddress myConnectedGateWay;
+IPAddress myConnectedMask;
 
 
 //----------------------------------------------------------------------
@@ -534,7 +538,7 @@ float validateTemperature(float incomingTemperature)
       return AM2315_Temperature;
     }
   }
-    if (incomingTemperature < AM2315_Temperature - 15.0) // check for large decrease in temperature
+  if (incomingTemperature < AM2315_Temperature - 15.0) // check for large decrease in temperature
   {
     // OK, we may have an invalid temperature.  Make sure this is not a startup (current humidity will be 0.0 if startup)
     if (AM2315_Humidity < 0.1)
@@ -742,7 +746,7 @@ void setup() {
 
   Serial.print("WiFi Channel= ");
   Serial.println(WiFi.channel());
-  
+
   blinkLED(2, 300);  // blink twice - OK!
   heapSize = ESP.getFreeHeap();
 
@@ -959,6 +963,16 @@ void setup() {
 
   Serial.print("OurWeather IP Address:");
   Serial.println(WiFi.localIP());
+  myConnectedIp = WiFi.localIP();
+
+  Serial.print("OurWeather Gateway Address:");
+  myConnectedGateWay = WiFi.gatewayIP();
+  Serial.println(WiFi.gatewayIP());
+
+  Serial.print("OurWeather subnet Mask:");
+  myConnectedMask = WiFi.subnetMask();
+  Serial.println(WiFi.subnetMask());
+
 
   //blinkIPAddress();
 
@@ -1049,7 +1063,7 @@ void setup() {
   }
 
 
- 
+
 
 
 
@@ -1155,7 +1169,7 @@ void loop() {
       Serial.print("Hum: "); Serial.println(AM2315_Humidity);
       Serial.print("DwPt: "); Serial.println(dewpoint);
 #ifdef DEBUGPRINT
-  am2315.printStatistics();
+      am2315.printStatistics();
 #endif
     }
     else
@@ -1638,6 +1652,50 @@ void loop() {
     }
     invalidTemperatureFound = false;
 
+
+    // Restart WiFi in case of connected, then lost connection
+    if (WiFiPresent == true)
+    {
+      if (WiFi.status()  != WL_CONNECTED)
+
+      {
+        //Restart Access Point with the specified name
+        WiFiManager wifiManager;
+        wifiManager.setDebugOutput(true);
+        Serial.println("--->Restarting Connection connect and setting");
+        wifiManager.setTimeout(600);
+
+
+        Serial.print("OurWeather IP Address:");
+        Serial.println(myConnectedIp);
+
+        Serial.print("OurWeather Gateway Address:");
+        Serial.println(myConnectedGateWay);
+
+        Serial.print("OurWeather subnet Mask:");
+        Serial.println(myConnectedMask);
+
+        wifiManager.setSTAStaticIPConfig( myConnectedIp, myConnectedGateWay, myConnectedMask);
+
+        //and goes into a blocking loop awaiting configuration
+        if (!wifiManager.justConnect(APssid.c_str())) {
+          Serial.println("->Restarting Connection but hit timeout");
+          Serial.println("->Failed Restarting Connection but hit timeout");
+          blinkLED(4, 300);  // blink 4, failed to connect
+
+        }
+        else
+        {
+          Serial.println("->Connection Restarted");
+
+        }
+
+
+
+      }
+    }
+
+
     if (WXLastMessageGood == true)
     {
       RestDataString += "WXLMG ,";
@@ -1647,9 +1705,9 @@ void loop() {
       RestDataString += "WXLMB ,";
     }
 
-     RestDataString += String(pubNubEnabled);
+    RestDataString += String(pubNubEnabled);
 
-   if (timeElapsed300Seconds > 300000)
+    if (timeElapsed300Seconds > 300000)
 
     {
 
@@ -1718,7 +1776,7 @@ void loop() {
 
       }
 
-        delay(2000);
+      delay(2000);
 
       // send data up to PubNub
 
