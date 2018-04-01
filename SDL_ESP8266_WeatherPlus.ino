@@ -1,5 +1,5 @@
 // Filename WeatherPlus.ino
-// Version 030 March 2018
+// Version 031 March 2018
 // SwitchDoc Labs, LLC
 //
 
@@ -7,9 +7,9 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "030"
+#define WEATHERPLUSESP8266VERSION "031"
 
-#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER030"
+#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER031"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 
@@ -93,6 +93,24 @@ String SDL2PubNubCode_Sub = "";
 
 
 
+// parsing function
+String getValue(String data, char separator, int index)
+{
+  int found = 0;
+  int strIndex[] = {
+    0, -1
+  };
+  int maxIndex = data.length() - 1;
+  for (int i = 0; i <= maxIndex && found <= index; i++) {
+    if (data.charAt(i) == separator || i == maxIndex) {
+      found++;
+      strIndex[0] = strIndex[1] + 1;
+      strIndex[1] = (i == maxIndex) ? i + 1 : i;
+    }
+  }
+  return found > index ? data.substring(strIndex[0], strIndex[1]) : "";
+}
+
 
 
 //
@@ -143,6 +161,8 @@ char uuid[]   = WEATHERPLUSPUBNUBPROTOCOL;
 #define DISPLAY_WXLINK 17
 #define DISPLAY_SDL2PUBNUBCODE 18
 #define DISPLAY_FAILED_RECONNECT 19
+#define DISPLAY_LIGHTNING_STATUS 20
+#define DISPLAY_LIGHTNING_DISPLAY 21
 
 #define DEBUG
 
@@ -249,45 +269,166 @@ const char *monthName[12] = {
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
 };
 
-// MOD1016-G Lightning Detector AS3935
-/*
-  #include "AS3935.h"
+#include "AS3935.h"
 
-  void printAS3935Registers();
-
-
-  // Interrupt handler for AS3935 irqs
-  // and flag variable that indicates interrupt has been triggered
-  // Variables that get changed in interrupt routines need to be declared volatile
-  // otherwise compiler can optimize them away, assuming they never get changed
-  void AS3935Irq();
-  volatile int AS3935IrqTriggered;
-
-  // Library object initialization First argument is interrupt pin, second is device I2C address
-  AS3935 AS3935(3, 0x03);
+// Thunder Board AS3935 from SwitchDoc Labs
+AS3935 as3935(0x02, 3);
 
 
+// lightning state variables as3935
 
-  void printAS3935Registers()
-  {
-  int noiseFloor = AS3935.getNoiseFloor();
-  int spikeRejection = AS3935.getSpikeRejection();
-  int watchdogThreshold = AS3935.getWatchdogThreshold();
+String as3935_LastLightning = "";
+int as3935_LastLightningDistance = 0;
+String as3935_LastEvent = "";
+int as3935_LastReturnIRQ = 0;
+String as3935_LastLightningTimeStamp = "";
+String as3935_LastEventTimeStamp = "";
+int as3835_LightningCountSinceBootup = 0;
+
+String as3935_FullString = "";
+String as3935_Params = "";
+
+int as3935_NoiseFloor = 2;
+
+bool as3935_Indoor = true;
+
+int as3935_TuneCap = 7;
+bool as3935_DisturberDetection = false;
+int as3935_WatchdogThreshold = 3;
+int as3935_SpikeDetection = 3;
+
+bool AS3935Present = false;
+
+void printAS3935Registers()
+{
+  int noiseFloor = as3935.getNoiseFloor();
+  int spikeRejection = as3935.getSpikeRejection();
+  int watchdogThreshold = as3935.getWatchdogThreshold();
   Serial.print("Noise floor is: ");
   Serial.println(noiseFloor, DEC);
   Serial.print("Spike rejection is: ");
   Serial.println(spikeRejection, DEC);
   Serial.print("Watchdog threshold is: ");
   Serial.println(watchdogThreshold, DEC);
+}
+
+int parseOutAS3935Parameters()
+{
+
+  // check for bad string
+
+  if (as3935_Params.indexOf(",") == -1)
+    as3935_Params = "2,1,7,0,3,3";
+
+  String Value;
+
+  Value = getValue(as3935_Params, ',', 0);
+  if ((Value.toInt() < 0) || (Value.toInt() > 7))
+    return 2;
+
+
+  Value = getValue(as3935_Params, ',', 1);
+  if ((Value.toInt() < 0) || (Value.toInt() > 1))
+    return 2;
+
+  Value = getValue(as3935_Params, ',', 2);
+  if ((Value.toInt() < 0) || (Value.toInt() > 15))
+    return 2;
+
+  Value = getValue(as3935_Params, ',', 3);
+  if ((Value.toInt() < 0) || (Value.toInt() > 1))
+    return 2;
+
+  Value = getValue(as3935_Params, ',', 4);
+  if ((Value.toInt() < 0) || (Value.toInt() > 15))
+    return 2;
+
+  Value = getValue(as3935_Params, ',', 5);
+  if ((Value.toInt() < 0) || (Value.toInt() > 15))
+    return 2;
+
+
+  // OK, if we are here then all data is good
+  Value = getValue(as3935_Params, ',', 0);
+  as3935_NoiseFloor = Value.toInt();
+  Value = getValue(as3935_Params, ',', 1);
+  as3935_Indoor = Value.toInt();
+  Value = getValue(as3935_Params, ',', 2);
+  as3935_TuneCap = Value.toInt();
+  Value = getValue(as3935_Params, ',', 3);
+  as3935_DisturberDetection = Value.toInt();
+  Value = getValue(as3935_Params, ',', 4);
+  as3935_WatchdogThreshold = Value.toInt();
+  Value = getValue(as3935_Params, ',', 5);
+  as3935_SpikeDetection = Value.toInt();
+
+  return 1;
+}
+
+void setAS3935Parameters()
+{
+
+
+  as3935.setTuningCapacitor(as3935_TuneCap);   // set to 1/2 - middle - you can calibrate on an Arduino UNO and use the value from there (pf/8)
+
+
+
+
+
+
+
+
+  // lightning state variables as3935
+
+
+
+  // first let's turn on disturber indication and print some register values from AS3935
+  // tell AS3935 we are indoors, for outdoors use setOutdoors() function
+  if (as3935_Indoor == true)
+  {
+    as3935.setIndoor();
+  }
+  else
+  {
+    as3935.setOutdoor();
   }
 
-  // this is irq handler for AS3935 interrupts, has to return void and take no arguments
-  // always make code in interrupt handlers fast and short
-  void AS3935Irq()
+  as3935.setNoiseFloor(as3935_NoiseFloor);
+  //AS3935.calibrate(); // can't calibrate because IRQ is polled and not through an Interrupt line on ESP8266
+
+  // turn on indication of distrubers, once you have AS3935 all tuned, you can turn those off with disableDisturbers()
+
+  if (as3935_DisturberDetection == true)
   {
-  AS3935IrqTriggered = 1;
+    as3935.enableDisturbers();
   }
-*/
+  else
+  {
+    as3935.disableDisturbers();
+  }
+
+  uint16_t getWatchdogThreshold(void);
+  uint16_t setWatchdogThreshold(uint16_t wdth);
+
+
+  as3935.setSpikeRejection(as3935_SpikeDetection);
+  as3935.setWatchdogThreshold(as3935_WatchdogThreshold);
+
+  // end set parameters
+
+
+  // set up as3935 REST variable
+  as3935_Params = String(as3935_NoiseFloor) + ",";
+  as3935_Params += String(as3935_Indoor) + ",";
+  as3935_Params += String(as3935_TuneCap) + ",";
+  as3935_Params += String(as3935_DisturberDetection) + ",";
+  as3935_Params += String(as3935_WatchdogThreshold) + ",";
+  as3935_Params += String(as3935_SpikeDetection) ;
+
+
+  printAS3935Registers();
+}
+
 
 // Station Name
 
@@ -704,6 +845,44 @@ void setup() {
 
   readEEPROMState();
 
+
+  // now set up thunderboard AS3935
+
+
+
+  // reset all internal register values to defaults
+  as3935.reset();
+
+
+  int noiseFloor = as3935.getNoiseFloor();
+
+  Serial.print("noiseFloor=");
+  Serial.println(noiseFloor);
+
+  if (noiseFloor == 2)
+  {
+    Serial.println("AS3935 Present");
+    AS3935Present = true;
+  }
+  else
+  {
+    Serial.println("AS3935 Not Present");
+    AS3935Present = false;
+  }
+
+  if (AS3935Present == true)
+  {
+
+    parseOutAS3935Parameters();
+    setAS3935Parameters();
+
+
+
+  }
+
+
+  // Set up Wifi
+
   const char APpassphrase[] = "OurWeather";
 
   // Append the last two bytes of the MAC (HEX'd) to string to make unique
@@ -783,6 +962,14 @@ void setup() {
   rest.variable("WindDirectionMax", &windDirectionMax);
   rest.variable("AirQualitySensor", &INTcurrentAirQualitySensor);
 
+  // as3935 rest variables
+
+
+  rest.variable("ThunderBoardLast", &as3935_FullString);
+  rest.variable("ThunderBoardParams", &as3935_Params);
+
+
+
 
   // Handle REST calls
   WiFiClient client = server.available();
@@ -853,6 +1040,16 @@ void setup() {
   rest.function("EnablePubNub", enableDisableSDL2PubNub);
 
   rest.function("SendPubNubState", sendStateSDL2PubNub);
+
+
+  // Thunderboard functions AS3935
+
+
+
+  rest.function("setThunderBoardParams", setThunderBoardParams);
+
+
+
 
 
   // Give name and ID to device
@@ -1705,10 +1902,109 @@ void loop() {
       RestDataString += "WXLMB ,";
     }
 
-    RestDataString += String(pubNubEnabled);
+    RestDataString += String(pubNubEnabled) + ",";
 
-    if (timeElapsed300Seconds > 300000)
 
+    if (AS3935Present == true)
+    {
+      // Now check for Lightning ThunderBoard AS3935
+
+      Serial.println("---------------");
+      Serial.println("ThunderBoard AS3935 Lightning Detector");
+      Serial.println("---------------");
+
+      // first step is to find out what caused interrupt
+      int strokeDistance = 0.0;
+      int irqSource = 0;
+
+      irqSource = as3935.getInterruptReason();
+      Serial.print("as3935 irqSource: ");
+      Serial.println(irqSource, HEX);
+
+      Serial.print("as3935 irqSource: ");
+      Serial.println(irqSource, BIN);
+
+
+
+
+      if (irqSource > 0)
+      {
+
+        printAS3935Registers();
+        as3935_LastReturnIRQ = irqSource;
+        // returned value is bitmap field, bit 0 - noise level too high, bit 2 - disturber detected, and finally bit 3 - lightning!
+        if (irqSource & 0b0001)
+        {
+          Serial.println("INT_NH Interrupt: Noise level too high, try adjusting noise floor");
+
+          as3935_LastEvent = "Noise Level too high";
+          RtcDateTime now = Rtc.GetDateTime();
+          as3935_LastEventTimeStamp = returnDateTime(now);
+        }
+        if (irqSource & 0b0100)
+        {
+          Serial.println("INT_D Interrupt: Disturber detected");
+          as3935_LastEvent = "Disturber detected";
+          RtcDateTime now = Rtc.GetDateTime();
+          as3935_LastEventTimeStamp = returnDateTime(now);
+        }
+        if (irqSource & 0b1000)
+        {
+          // need to find how far that lightning stroke, function returns approximate distance in kilometers,
+          // where value 1 represents storm in detector's near victinity, and 63 - very distant, out of range stroke
+          // everything in between is just distance in kilometers
+
+          strokeDistance = as3935.getDistance();
+
+          as3935_LastEvent = "Lightning detected";
+          RtcDateTime now = Rtc.GetDateTime();
+          as3935_LastEventTimeStamp = returnDateTime(now);
+
+          as3935_LastLightning  = String(strokeDistance) + " km" ;
+          as3935_LastLightningTimeStamp = returnDateTime(now);
+          as3935_LastLightningDistance = strokeDistance;
+          as3835_LightningCountSinceBootup++;
+
+
+          Serial.print("INT_L Interrupt: Lightning Detected.  Stroke Distance:");
+          Serial.print(strokeDistance);
+          Serial.println(" km");
+          if (strokeDistance == 1)
+            Serial.println("Storm overhead");
+          if (strokeDistance == 63)
+            Serial.println("Out of range lightning detected.");
+
+          delay(3000);
+          updateDisplay(DISPLAY_LIGHTNING_DISPLAY);
+          delay(3000);
+
+
+
+
+        }
+      }
+
+    }
+    //  Lightning REST variable
+    as3935_FullString = "";
+    as3935_FullString += as3935_LastLightning + ",";
+    as3935_FullString += as3935_LastLightningTimeStamp + ",";
+    as3935_FullString += String(as3935_LastLightningDistance) + ",";
+    as3935_FullString += as3935_LastEvent + ",";
+    as3935_FullString += as3935_LastEventTimeStamp + ",";
+    as3935_FullString += String(as3835_LightningCountSinceBootup);
+
+
+    // Lighting Rest
+    RestDataString += as3935_LastLightning + ",";
+    RestDataString += as3935_LastLightningTimeStamp + ",";
+    RestDataString += String(as3935_LastLightningDistance) + ",";
+    RestDataString += as3935_LastEvent + ",";
+    RestDataString += as3935_LastEventTimeStamp + ",";
+    RestDataString += String(as3835_LightningCountSinceBootup);
+
+
+    if (timeElapsed300Seconds > 300000)   // 5 minutes
     {
 
 
@@ -1740,7 +2036,7 @@ void loop() {
         startOfDayRain = rainTotal;
       }
 
-      Serial.println("Attempting to send data to WeatherUnderground");
+
 
       bool dataStale;
       dataStale = false;
@@ -1760,21 +2056,40 @@ void loop() {
         }
       }
 
-      if (dataStale == false)
-        Serial.println("WeatherUnderground Data New - sent");
-      else
-        Serial.println("WeatherUnderground Data Stale - Not sent");
 
-      if (dataStale == false)
+      if ((WeatherUnderground_StationID.length() == 0) || (WeatherUnderground_StationKey.length() == 0) )
       {
-        if (sendWeatherUndergroundData() == 0)
-        {
-          // Failed - try again
-          sendWeatherUndergroundData();
-        }
-
-
+        Serial.println("-----------");
+        Serial.println(" WeatherUnderground Disabled");
+        Serial.println("-----------");
       }
+      else // Check next and the go for it.
+        if ((WeatherUnderground_StationID == "XXXX") || (WeatherUnderground_StationKey == "YYYY") )
+        {
+          Serial.println("-----------");
+          Serial.println(" WeatherUnderground Disabled");
+          Serial.println("-----------");
+
+        }
+        else
+        {
+          Serial.println("Attempting to send data to WeatherUnderground");
+          if (dataStale == false)
+            Serial.println("WeatherUnderground Data New - sent");
+          else
+            Serial.println("WeatherUnderground Data Stale - Not sent");
+
+          if (dataStale == false)
+          {
+            if (sendWeatherUndergroundData() == 0)
+            {
+              // Failed - try again
+              sendWeatherUndergroundData();
+            }
+
+
+          }
+        }
 
       delay(2000);
 
@@ -1793,6 +2108,14 @@ void loop() {
 
 
     updateDisplay(WeatherDisplayMode);
+
+
+    if (AS3935Present == true)
+    {
+      delay(3000);
+      updateDisplay(DISPLAY_LIGHTNING_STATUS);
+      delay(3000);
+    }
 
     if (SunAirPlus_Present)
     {

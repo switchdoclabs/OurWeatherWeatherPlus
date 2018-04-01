@@ -15,6 +15,9 @@
 void setDisplayLine(int lineNumber, char *value);
 void writeAllDisplayLines(int DisplayMode);
 
+
+// https://stackoverflow.com/questions/9072320/split-string-into-string-array
+
 char displayLines[20][28];
 
 
@@ -156,8 +159,8 @@ void updateDisplay(int displayMode)
 
       }
       break;
-      
-          case DISPLAY_FAILED_RECONNECT:
+
+    case DISPLAY_FAILED_RECONNECT:
       {
 
         setDisplayLine(0,  "Failing to reconnect to WiFI");
@@ -230,6 +233,61 @@ void updateDisplay(int displayMode)
 
       }
       break;
+
+    case DISPLAY_LIGHTNING_STATUS:
+
+      {
+        setDisplayLine(0, "Lightning Status");
+        setDisplayLine(1, "----------------");
+
+
+
+
+
+        String stringSolar;
+
+
+        stringSolar = "Last:" + as3935_LastLightning;
+
+        setDisplayLine(2, const_cast<char*>(stringSolar.c_str()) );
+
+        stringSolar = "Date:" + getValue(as3935_LastLightningTimeStamp, ' ', 0);
+        setDisplayLine(3, const_cast<char*>(stringSolar.c_str()) );
+
+        stringSolar = "Time:" + getValue(as3935_LastLightningTimeStamp, ' ', 1);
+        setDisplayLine(4, const_cast<char*>(stringSolar.c_str()) );
+
+
+
+
+
+
+
+      }
+      break;
+
+    case DISPLAY_LIGHTNING_DISPLAY:
+
+      {
+        String stringSolar;
+
+
+        stringSolar =  as3935_LastLightning + " away";
+
+
+        setDisplayLine(0, "LIGHTNING!");
+        setDisplayLine(1, "----------------");
+        setDisplayLine(2, const_cast<char*>(stringSolar.c_str()) ); 
+        setDisplayLine(3, "----------------");
+        setDisplayLine(4, "LIGHTNING!");
+
+
+
+
+
+      }
+      break;
+
 
     case DISPLAY_WXLINK:
 
@@ -963,6 +1021,8 @@ void writeAllDisplayLines(int DisplayMode)
       break;
 
     case DISPLAY_SUNAIRPLUS:
+    case DISPLAY_LIGHTNING_STATUS:
+    case DISPLAY_LIGHTNING_DISPLAY:
 
       {
         int textSize = 1;

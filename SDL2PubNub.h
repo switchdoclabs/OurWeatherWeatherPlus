@@ -7,45 +7,45 @@
 
 String urlencode(String str)
 {
-    String encodedString="";
-    char c;
-    char code0;
-    char code1;
-    char code2;
-    for (int i =0; i < str.length(); i++){
-      c=str.charAt(i);
-      if (c == ' '){
-        encodedString+= '+';
-      } else if (isalnum(c)){
-        encodedString+=c;
-      } else{
-        code1=(c & 0xf)+'0';
-        if ((c & 0xf) >9){
-            code1=(c & 0xf) - 10 + 'A';
-        }
-        c=(c>>4)&0xf;
-        code0=c+'0';
-        if (c > 9){
-            code0=c - 10 + 'A';
-        }
-        code2='\0';
-        encodedString+='%';
-        encodedString+=code0;
-        encodedString+=code1;
-        //encodedString+=code2;
+  String encodedString = "";
+  char c;
+  char code0;
+  char code1;
+  char code2;
+  for (int i = 0; i < str.length(); i++) {
+    c = str.charAt(i);
+    if (c == ' ') {
+      encodedString += '+';
+    } else if (isalnum(c)) {
+      encodedString += c;
+    } else {
+      code1 = (c & 0xf) + '0';
+      if ((c & 0xf) > 9) {
+        code1 = (c & 0xf) - 10 + 'A';
       }
-      yield();
+      c = (c >> 4) & 0xf;
+      code0 = c + '0';
+      if (c > 9) {
+        code0 = c - 10 + 'A';
+      }
+      code2 = '\0';
+      encodedString += '%';
+      encodedString += code0;
+      encodedString += code1;
+      //encodedString+=code2;
     }
-    return encodedString;
-    
+    yield();
+  }
+  return encodedString;
+
 }
 String myURLEncode(String urlChars)
 {
-  urlChars.replace("%","%25");
+  urlChars.replace("%", "%25");
   urlChars.replace(" ", "%20");
   urlChars.replace(String(char('\"')), "%22");
 
-  
+
   urlChars.replace("&", "%26");
   urlChars.replace(String(char(39)), "%27");
 
@@ -53,7 +53,7 @@ String myURLEncode(String urlChars)
 
   return urlChars;
 
-  
+
 }
 
 void GETpublishPubNubMessage(String message)
@@ -64,27 +64,27 @@ void GETpublishPubNubMessage(String message)
 
     HTTPClient http;  //Declare an object of class HTTPClient
     Serial.println("Ready to send");
-  Serial.print("Pub Key=");
-  Serial.println(SDL2PubNubCode);
-  Serial.print("Sub Key=");
-  Serial.println(SDL2PubNubCode_Sub);
-     String sendString;
+    Serial.print("Pub Key=");
+    Serial.println(SDL2PubNubCode);
+    Serial.print("Sub Key=");
+    Serial.println(SDL2PubNubCode_Sub);
+    String sendString;
 
-     sendString = "http://pubsub.pubnub.com/publish/";
+    sendString = "http://pubsub.pubnub.com/publish/";
 
-     sendString = sendString + SDL2PubNubCode;
-     sendString = sendString + "/";
-     sendString = sendString + SDL2PubNubCode_Sub;
-     sendString = sendString + "/";
-     sendString = sendString + "0/";
-     sendString = sendString + channel1;
-     sendString = sendString + "/0/";
-     sendString = sendString + myURLEncode(message);
-     //sendString = sendString + "{%22FullDataString%22:%20%225.80,99%22}";
-     //sendString = sendString + message;
+    sendString = sendString + SDL2PubNubCode;
+    sendString = sendString + "/";
+    sendString = sendString + SDL2PubNubCode_Sub;
+    sendString = sendString + "/";
+    sendString = sendString + "0/";
+    sendString = sendString + channel1;
+    sendString = sendString + "/0/";
+    sendString = sendString + myURLEncode(message);
+    //sendString = sendString + "{%22FullDataString%22:%20%225.80,99%22}";
+    //sendString = sendString + message;
     //sendString = sendString + urlencode(message);
 
-     Serial.println(sendString);
+    Serial.println(sendString);
 
 
     http.begin(sendString);  //Specify request destination
@@ -138,7 +138,7 @@ void publishPubNubMessage(String message)
 
 #endif
 
-message= myURLEncode(message);
+  message = myURLEncode(message);
 
 
 
@@ -214,8 +214,6 @@ int sendStateSDL2PubNub(String command)
 
 }
 
-// REST Functions
-
 // Enable PubNub
 
 
@@ -259,4 +257,69 @@ int enableDisableSDL2PubNub(String command)
 
   return 1;
 }
+
+
+
+// ThunderBoard AS3935 Functions
+
+
+
+
+/*
+  // set up as3935 REST variable
+  as3935_Params = as3935_NoiseFloor + ",";
+  as3935_Params = + as3935_Indoor + ",";
+  as3935_Params = + as3935_TuneCap + ",";
+  as3935_Params = + as3935_DisturberDetection + ",";
+  as3935_Params = + as3935_WatchdogThreshold + ",";
+  as3935_Params = + as3935_SpikeDetection ;
+
+*/
+int setThunderBoardParams(String command)
+{
+
+
+  String sentPassword;
+  String setValue;
+
+
+  sentPassword = getValue(command, ',', 0);
+
+  if (sentPassword == adminPassword)
+  {
+    if (AS3935Present == true)
+    {
+      int index;
+      index = command.indexOf(',');
+      command = command.substring(index + 1);
+
+      Serial.print ("as3935_Params=");
+      Serial.println(command);
+
+      if ((command.length() < 11) || (command.length() > 14))
+      {
+        return 2;
+      }
+      else
+      {
+        as3935_Params = command;
+        int error;
+        // execute and set them!
+         error = parseOutAS3935Parameters();
+         if (error == 2)
+          return 2;
+          
+        setAS3935Parameters();
+
+        writeEEPROMState();
+      }
+
+
+      return 1;
+    }
+
+  }
+  return 0;
+}
+
 

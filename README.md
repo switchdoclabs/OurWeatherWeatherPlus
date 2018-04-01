@@ -6,13 +6,17 @@ Arduino IDE software designed for the ESP8266 on the WeatherPlus Board and the O
 www.switchdoc.com
 March 2018 
 
+Current Version 031 - March 30, 2018
+
+- Added support for the OurWeather ThunderBoard Lightning Detection Extender Pack
+
 Current Version 030 - March 24, 2018
 
 - Adding WiFi Reconnect code - only after success on an AP 
 
 Current Version 029 - March 15, 2018
 
-- Changed Alexa to PubNub to be compatible with March 1, 2018 PubNub changE
+- Changed Alexa to PubNub to be compatible with March 1, 2018 PubNub change
 
 Current Version 028 - February 12, 2018
 

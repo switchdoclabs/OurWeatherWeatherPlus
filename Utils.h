@@ -110,6 +110,16 @@ void writeEEPROMState()
   }
   EEPROM.write(i, '\0');
 
+  // setup AS3935 parameter string  -31 characters assumed
+
+  for (i = 318; i < as3935_Params.length() + 318; i++)
+  {
+    EEPROM.write(i, as3935_Params[i - 318]);
+
+
+  }
+  EEPROM.write(i, '\0');
+
 
 
   EEPROM.commit();
@@ -149,6 +159,8 @@ void writeEEPROMState()
   Serial.println(SDL2PubNubCode);
   Serial.print("SDL2PubNubCode_Sub=");
   Serial.println(SDL2PubNubCode_Sub);
+  Serial.print("as3935_Params=");
+  Serial.println(as3935_Params);
 }
 
 
@@ -286,6 +298,28 @@ void readEEPROMState()
     }
     else
       SDL2PubNubCode_Sub = "XX";
+
+    // now read params list for AS3935
+    String tempString;
+    tempString = "";
+    for (i = 318; i < 318 + 31; i++)
+    {
+      myChar = EEPROM.read(i);
+
+      if (myChar == 0)
+        break;
+      tempString += myChar;
+    }
+
+
+    if (tempString.length() > 0)
+      as3935_Params = tempString;
+
+
+
+
+
+
   }
   else
   {
@@ -336,6 +370,8 @@ void readEEPROMState()
   Serial.println(SDL2PubNubCode);
   Serial.print("SDL2PubNubCode_Sub=");
   Serial.println(SDL2PubNubCode_Sub);
+  Serial.print("as3935_Params=");
+  Serial.println(as3935_Params);
 }
 
 
