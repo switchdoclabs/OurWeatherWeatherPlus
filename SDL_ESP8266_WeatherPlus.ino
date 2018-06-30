@@ -1,5 +1,5 @@
 // Filename WeatherPlus.ino
-// Version 031 March 2018
+// Version 032 June 2018
 // SwitchDoc Labs, LLC
 //
 
@@ -7,9 +7,9 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "031"
+#define WEATHERPLUSESP8266VERSION "032"
 
-#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER031"
+#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER032"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 
@@ -19,7 +19,7 @@
 
 
 
-// Change this to undef if you don't have the OLED present0
+// Change this to undef if you don't have the OLED present
 #define OLED_Present
 
 // BOF preprocessor bug prevent - insert on top of your arduino-code
@@ -34,6 +34,7 @@ __asm volatile ("nop");
 extern "C" {
 #include "user_interface.h"
 }
+
 //#include "Time/TimeLib.h"
 #include "TimeLib.h"
 
@@ -271,7 +272,7 @@ const char *monthName[12] = {
 
 #include "AS3935.h"
 
-// Thunder Board AS3935 from SwitchDoc Labs
+// ThunderBoard AS3935 from SwitchDoc Labs
 AS3935 as3935(0x02, 3);
 
 
@@ -394,6 +395,12 @@ void setAS3935Parameters()
   }
 
   as3935.setNoiseFloor(as3935_NoiseFloor);
+
+#ifdef DEBUGPRINT
+  Serial.print("NoiseFloor=");
+  Serial.println(as3935_NoiseFloor);
+#endif
+
   //AS3935.calibrate(); // can't calibrate because IRQ is polled and not through an Interrupt line on ESP8266
 
   // turn on indication of distrubers, once you have AS3935 all tuned, you can turn those off with disableDisturbers()
@@ -502,7 +509,7 @@ int pinRain = 12;
 Adafruit_ADS1015 ads1015(0x49);
 
 int current_quality = -1;
-Adafruit_ADS1115 adsAirQuality(0x4A);
+Adafruit_ADS1115 adsAirQuality(0x48);
 
 
 
@@ -1137,9 +1144,12 @@ void setup() {
 
   int16_t ad0 = adsAirQuality.readADC_SingleEnded(0);
 
+  
+
   currentAirQuality = -1;
   currentAirQualitySensor = 0;
   INTcurrentAirQualitySensor = 0;
+
   if (ad0 != -1)
   {
     AirQualityPresent = true;
