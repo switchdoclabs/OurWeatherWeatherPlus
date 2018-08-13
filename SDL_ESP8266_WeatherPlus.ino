@@ -1,5 +1,5 @@
 // Filename WeatherPlus.ino
-// Version 032 June 2018
+// Version 033 August 2018
 // SwitchDoc Labs, LLC
 //
 
@@ -7,9 +7,9 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "032"
+#define WEATHERPLUSESP8266VERSION "033"
 
-#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER032"
+#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER033"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 
@@ -134,7 +134,7 @@ char uuid[]   = WEATHERPLUSPUBNUBPROTOCOL;
 
 #define DEBUG_MODE 1
 
-#include "aREST.h"
+#include "MaREST.h"
 
 #include <String.h>
 
