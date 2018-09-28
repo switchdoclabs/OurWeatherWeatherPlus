@@ -4,7 +4,11 @@ OurWeather Software for the SwitchDoc Labs Board WeatherPlus
 Arduino IDE software designed for the ESP8266 on the WeatherPlus Board and the OurWeather Weather Kit
 
 www.switchdoc.com
-August 2018 
+September 2018 
+
+Current Version 034 - September 28, 2018
+
+- Merged frightanic changes for WPS support.  Updated Version Number
 
 Current Version 033 - August 13, 2018
 

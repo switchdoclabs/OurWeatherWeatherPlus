@@ -7,9 +7,9 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "033"
+#define WEATHERPLUSESP8266VERSION "034"
 
-#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER033"
+#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER034"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 
