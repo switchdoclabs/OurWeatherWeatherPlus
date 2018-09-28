@@ -335,12 +335,14 @@ int WiFiManager::connectWifi(String ssid, String pass) {
   int connRes = waitForConnectResult();
   DEBUG_WM ("Connection result: ");
   DEBUG_WM ( connRes );
+  #ifdef NO_EXTRA_4K_HEAP
   //not connected, WPS enabled, no pass - first attempt
   if (_tryWPS && connRes != WL_CONNECTED && pass == "") {
     startWPS();
     //should be connected at the end of WPS
     connRes = waitForConnectResult();
   }
+  #endif
   return connRes;
 }
 
@@ -366,12 +368,13 @@ uint8_t WiFiManager::waitForConnectResult() {
     return status;
   }
 }
-
+#ifdef NO_EXTRA_4K_HEAP
 void WiFiManager::startWPS() {
   DEBUG_WM("START WPS");
   WiFi.beginWPSConfig();
   DEBUG_WM("END WPS");
 }
+#endif
 /*
   String WiFiManager::getSSID() {
   if (_ssid == "") {

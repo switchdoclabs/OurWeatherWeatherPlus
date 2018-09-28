@@ -166,7 +166,9 @@ class WiFiManager
     //const String  HTTP_HEAD = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>{v}</title>";
 
     void          setupConfigPortal();
+    #ifdef NO_EXTRA_4K_HEAP
     void          startWPS();
+    #endif
 
     const char*   _apName                 = "no-net";
     const char*   _apPassword             = NULL;
@@ -191,7 +193,9 @@ class WiFiManager
     int           _paramsCount            = 0;
     int           _minimumQuality         = -1;
     boolean       _shouldBreakAfterConfig = false;
+    #ifdef NO_EXTRA_4K_HEAP
     boolean       _tryWPS                 = false;
+    #endif
 
     const char*   _customHeadElement      = "";
 
