@@ -8,7 +8,7 @@
 
 
 
-int ledControl(String command) { 
+int ledControl(String command) {
 
   // Get state from command
   int state = command.toInt();
@@ -148,6 +148,7 @@ int setWUKEY(String command)
   {
     WeatherUnderground_StationKey = WUKEY;
     writeEEPROMState();
+
     return 1;
   }
   else
@@ -158,6 +159,33 @@ int setWUKEY(String command)
 
 }
 
+void startBlynk();
+int setBAKEY(String command)
+{
+  Serial.print("Command =");
+  Serial.println(command);
+
+
+  String sentPassword;
+  String BAKEY;
+
+  sentPassword = getValue(command, ',', 0);
+  BAKEY = getValue(command, ',', 1);
+
+  if (sentPassword == adminPassword)
+  {
+    BlynkAuthCode = BAKEY;
+    writeEEPROMState();
+    startBlynk();
+    return 1;
+  }
+  else
+    return 0;
+
+
+  return 1;
+
+}
 
 int rebootOurWeather(String command) {
 
@@ -326,11 +354,13 @@ int weatherDemoControl(String command) {
   return 1;
 }
 
-
+void writeToBlynkStatusTerminal(String statement);
 
 int englishUnitControl(String command) {
 
   EnglishOrMetric = 0;
+  writeToBlynkStatusTerminal("Units set to English");
+  Blynk.virtualWrite(V8,  "English");
   writeEEPROMState();
   return 1;
 }
@@ -339,6 +369,8 @@ int englishUnitControl(String command) {
 int metricUnitControl(String command) {
 
   EnglishOrMetric = 1;
+  writeToBlynkStatusTerminal("Units set to Metric");
+  Blynk.virtualWrite(V8,  "English");
   writeEEPROMState();
   return 1;
 }

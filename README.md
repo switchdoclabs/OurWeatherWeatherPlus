@@ -6,6 +6,10 @@ Arduino IDE software designed for the ESP8266 on the WeatherPlus Board and the O
 www.switchdoc.com
 September 2018 
 
+Current Version 035 - December 10, 2018
+
+- Added Blynk App support, Changed Air Quality Sensor to A0 of the ADC converter to match manual.
+
 Current Version 034 - September 28, 2018
 
 - Merged frightanic changes for WPS support.  Updated Version Number

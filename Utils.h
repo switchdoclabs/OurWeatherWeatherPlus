@@ -1,4 +1,9 @@
 
+
+
+// EEPROM Preferences
+
+
 void readEEPROMState();
 
 #define READ_CODE 165
@@ -120,6 +125,15 @@ void writeEEPROMState()
   }
   EEPROM.write(i, '\0');
 
+  // write out BlynkAuthCode
+
+  for (i = 349; i < BlynkAuthCode.length() + 349; i++)
+  {
+    EEPROM.write(i, BlynkAuthCode[i - 349]);
+
+
+  }
+  EEPROM.write(i, '\0');
 
 
   EEPROM.commit();
@@ -161,6 +175,9 @@ void writeEEPROMState()
   Serial.println(SDL2PubNubCode_Sub);
   Serial.print("as3935_Params=");
   Serial.println(as3935_Params);
+  Serial.print("BlynkAuthCode=");
+  Serial.println(BlynkAuthCode);
+
 }
 
 
@@ -315,6 +332,23 @@ void readEEPROMState()
     if (tempString.length() > 0)
       as3935_Params = tempString;
 
+    // now read Blynk Authorization Code
+    BlynkAuthCode = "";
+
+    for (i = 349; i < 349 + 43; i++)
+    {
+      myChar = EEPROM.read(i);
+
+      if (myChar == 0)
+        break;
+      BlynkAuthCode += myChar;
+    }
+
+    if (BlynkAuthCode.length() == 0)
+      UseBlynk = false;
+    else
+      UseBlynk = true;
+
 
 
 
@@ -337,6 +371,7 @@ void readEEPROMState()
     pubNubEnabled = 0;
     SDL2PubNubCode = "XX";
     SDL2PubNubCode_Sub = "XX";
+    BlynkAuthCode = "";
     writeEEPROMState();
 
 
@@ -372,8 +407,11 @@ void readEEPROMState()
   Serial.println(SDL2PubNubCode_Sub);
   Serial.print("as3935_Params=");
   Serial.println(as3935_Params);
+  Serial.print("BlynkAuthCode=");
+  Serial.println(BlynkAuthCode);
+  Serial.print("UseBlynk=");
+  Serial.println(UseBlynk);
 }
-
 
 
 String returnDirectionFromDegrees(int degrees)
@@ -761,12 +799,75 @@ String returnDateTime(const RtcDateTime& dt)
 
   snprintf_P(datestring,
              countof(datestring),
-             "%02u/%02u/%04u %02u:%02u:%02u",
+             "%04u-%02u-%02u %02u:%02u:%02u",
+             dt.Year(),
              dt.Month(),
              dt.Day(),
-             dt.Year(),
              dt.Hour(),
              dt.Minute(),
              dt.Second() );
   return String(datestring);
+}
+
+
+float returnPercentLeftInBattery(float currentVoltage, float maxVolt)
+{
+
+  float returnPercent;
+
+  float scaledVolts = currentVoltage / maxVolt;
+
+  if (scaledVolts > 1.0)
+    scaledVolts = 1.0;
+
+
+  if (scaledVolts > .9686)
+  {
+    returnPercent = 10 * (1 - (1.0 - scaledVolts) / (1.0 - .9686)) + 90;
+    return returnPercent;
+  }
+
+  if (scaledVolts > 0.9374)
+  {
+    returnPercent = 10 * (1 - (0.9686 - scaledVolts) / (0.9686 - 0.9374)) + 80;
+    return returnPercent;
+  }
+
+
+  if (scaledVolts > 0.9063)
+  {
+    returnPercent = 30 * (1 - (0.9374 - scaledVolts) / (0.9374 - 0.9063)) + 50;
+    return returnPercent;
+
+  }
+
+  if (scaledVolts > 0.8749)
+  {
+    returnPercent = 20 * (1 - (0.8749 - scaledVolts) / (0.9063 - 0.8749)) + 11;
+
+    return returnPercent;
+  }
+
+
+  if (scaledVolts > 0.8437)
+  {
+    returnPercent = 15 * (1 - (0.8437 - scaledVolts) / (0.8749 - 0.8437)) + 1;
+    return returnPercent;
+
+  }
+
+  if (scaledVolts > 0.8126)
+  {
+    returnPercent = 7 * (1 - (0.8126 - scaledVolts) / (0.8437 - 0.8126)) + 2;
+    return returnPercent;
+  }
+
+
+  if (scaledVolts > 0.7812)
+  {
+    returnPercent = 4 * (1 - (0.7812 - scaledVolts) / (0.8126 - 0.7812)) + 1;
+    return returnPercent;
+  }
+
+  return 0;
 }

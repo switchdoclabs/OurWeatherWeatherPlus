@@ -1,5 +1,5 @@
 // Filename WeatherPlus.ino
-// Version 033 August 2018
+// Version 035 December 2018
 // SwitchDoc Labs, LLC
 //
 
@@ -7,9 +7,9 @@
 //
 
 
-#define WEATHERPLUSESP8266VERSION "034"
+#define WEATHERPLUSESP8266VERSION "035"
 
-#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER034"
+#define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER035"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 
@@ -17,6 +17,15 @@
 
 #undef PUBNUB_DEBUG
 
+#undef DEBUGBLYNK
+
+#define BLYNK_NO_BUILTIN
+
+#define BLYNK_PRINT Serial // Defines the object that is used for printing
+#undef BLYNK_DEBUG
+#define BLYNK_USE_128_VPINS
+
+#include <BlynkSimpleEsp8266.h>
 
 
 // Change this to undef if you don't have the OLED present
@@ -81,6 +90,16 @@ int pubNubEnabled;
 String SDL2PubNubCode  = "";
 String SDL2PubNubCode_Sub = "";
 
+// Blynk Codes
+String BlynkAuthCode = "";
+bool UseBlynk = false;
+
+
+BlynkTimer Btimer;
+
+
+// Attach virtual serial terminal to Virtual Pin
+WidgetTerminal statusTerminal(V32);
 
 #define PUBLISHINTERVALSECONDS 30
 
@@ -735,6 +754,7 @@ bool scanAddressForI2CBus(byte from_addr)
 
 RtcDateTime lastBoot;
 
+#include "BlynkRoutines.h"
 
 void setup() {
 
@@ -833,6 +853,7 @@ void setup() {
 
   EEPROM.begin(512);
 
+
 #ifdef OLED_Present
   OLEDDisplaySetup();
   updateDisplay(DISPLAY_POWERUP);
@@ -846,8 +867,6 @@ void setup() {
     invalidateEEPROMState();
 
   }
-
-
 
 
   readEEPROMState();
@@ -1015,6 +1034,7 @@ void setup() {
 
   rest.function("setWUSID",   setWUSID);
   rest.function("setWUKEY",   setWUKEY);
+  rest.function("setBAKEY",   setBAKEY);
 
   rest.function("setAdminPassword",   setAdminPassword);
   //rest.function("rebootOurWeather",   rebootOurWeather);
@@ -1066,6 +1086,8 @@ void setup() {
 
 
   initialize60MinuteRain();
+
+
 
 
 
@@ -1144,7 +1166,7 @@ void setup() {
 
   int16_t ad0 = adsAirQuality.readADC_SingleEnded(0);
 
-  
+
 
   currentAirQuality = -1;
   currentAirQualitySensor = 0;
@@ -1230,6 +1252,7 @@ void setup() {
 
   // setup AM2315
 
+  bool AM2315_Present = false;
 
   AOK = am2315.readData(dataAM2315);
 
@@ -1245,6 +1268,7 @@ void setup() {
     AM2315_Temperature = dataAM2315[1];
     AM2315_Humidity = dataAM2315[0];
     dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
+    AM2315_Present = true;
 
   }
   else
@@ -1272,10 +1296,118 @@ void setup() {
 
 
 
+  if (UseBlynk == true)
+  {
 
 
 
-}
+    Blynk.config(BlynkAuthCode.c_str());
+
+    // Setup a function to be called every 10 seconds
+    Btimer.setInterval(10000L, myBTimerEvent);
+    // Every second
+
+
+    Blynk.connect();
+
+
+
+#ifdef DEBUGBLYNK
+    if (Blynk.connected())
+    {
+      Serial.println("Blynk Connected");
+
+    }
+    else
+    {
+      Serial.println("Blynk NOT Connected");
+
+    }
+#endif
+    // Clear the terminal content
+    //statusTerminal.clear();
+    writeToStatusLine((String)"OurWeather Version V" + (String)WEATHERPLUSESP8266VERSION + " Started");
+
+    writeToBlynkStatusTerminal((String)"OurWeather Version V" + (String)WEATHERPLUSESP8266VERSION + " Started");
+    // Print out the presents
+    if (SunAirPlus_Present)
+    {
+      writeToBlynkStatusTerminal("SunAirPlus Present");
+
+    }
+    else
+    {
+      writeToBlynkStatusTerminal("SunAirPlus Not Present");
+    }
+
+    if (WXLink_Present)
+    {
+      writeToBlynkStatusTerminal("WXLink Present");
+
+    }
+    else
+    {
+      writeToBlynkStatusTerminal("WXLink Not Present");
+    }
+
+    if (AirQualityPresent)
+    {
+      writeToBlynkStatusTerminal("Air Quality Sensor Present");
+
+    }
+    else
+    {
+      writeToBlynkStatusTerminal("Air Quality Sensor Not Present");
+    }
+
+    if (BMP280Found)
+    {
+      writeToBlynkStatusTerminal("BMP280 Present");
+
+    }
+    else
+    {
+      writeToBlynkStatusTerminal("BMP280 Not Present");
+    }
+
+    if (AM2315_Present)
+    {
+      writeToBlynkStatusTerminal("AM2315 Present");
+
+    }
+    else
+    {
+      writeToBlynkStatusTerminal("AM2315 Not Present");
+    }
+
+    if (AS3935Present)
+    {
+      writeToBlynkStatusTerminal("AS3935 ThunderBoard Present");
+
+    }
+    else
+    {
+      writeToBlynkStatusTerminal("AS3935 ThunderBoard Not Present");
+    }
+  }
+
+  if (EnglishOrMetric == 0)
+  {
+    Blynk.virtualWrite(V8,  "English");
+    writeToBlynkStatusTerminal("Units set to English");
+  }
+  else
+  {
+    Blynk.virtualWrite(V8,  "Metric");
+    writeToBlynkStatusTerminal("Units set to Metric ");
+
+  
+  
+  
+  }
+
+
+} // end setup
 
 
 //
@@ -1946,6 +2078,7 @@ void loop() {
         if (irqSource & 0b0001)
         {
           Serial.println("INT_NH Interrupt: Noise level too high, try adjusting noise floor");
+          writeToBlynkStatusTerminal("ThunderBoard-Noise level too high");
 
           as3935_LastEvent = "Noise Level too high";
           RtcDateTime now = Rtc.GetDateTime();
@@ -1954,6 +2087,7 @@ void loop() {
         if (irqSource & 0b0100)
         {
           Serial.println("INT_D Interrupt: Disturber detected");
+          writeToBlynkStatusTerminal("ThunderBoard-Disturber detected");
           as3935_LastEvent = "Disturber detected";
           RtcDateTime now = Rtc.GetDateTime();
           as3935_LastEventTimeStamp = returnDateTime(now);
@@ -1979,6 +2113,9 @@ void loop() {
           Serial.print("INT_L Interrupt: Lightning Detected.  Stroke Distance:");
           Serial.print(strokeDistance);
           Serial.println(" km");
+          writeToBlynkStatusTerminal((String)"ThunderBoard-Lightning! Distance=" + String(strokeDistance));
+          writeToStatusLine((String)"ThunderBoard-Lightning! Distance=" + String(strokeDistance));
+
           if (strokeDistance == 1)
             Serial.println("Storm overhead");
           if (strokeDistance == 63)
@@ -2166,7 +2303,12 @@ void loop() {
 
   }
 
+  if (UseBlynk)
+  {
 
+    Blynk.run();
+    Btimer.run(); // Initiates BlynkTimer
+  }
 
   yield();
 

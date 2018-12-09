@@ -3,7 +3,7 @@ int getAirQuality(void)
 
   // Values in this routine are for 16 bit ADC
 
-  int16_t sensor_value = adsAirQuality.readADC_SingleEnded(3);
+  int16_t sensor_value = adsAirQuality.readADC_SingleEnded(0);
  // int16_t sensor_value = adsAirQuality.readADC_SingleEnded(0);
   Serial.print("Sensor_Value=");
   Serial.print(sensor_value);
