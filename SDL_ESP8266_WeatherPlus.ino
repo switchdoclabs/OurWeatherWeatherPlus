@@ -3,7 +3,7 @@
 // SwitchDoc Labs, LLC
 //
 
-//
+// edit in Atom 0549 06232019..
 //
 
 
@@ -1401,9 +1401,9 @@ void setup() {
     Blynk.virtualWrite(V8,  "Metric");
     writeToBlynkStatusTerminal("Units set to Metric ");
 
-  
-  
-  
+
+
+
   }
 
 
