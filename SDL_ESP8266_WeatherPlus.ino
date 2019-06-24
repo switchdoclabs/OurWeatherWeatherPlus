@@ -155,7 +155,7 @@ char uuid[]   = WEATHERPLUSPUBNUBPROTOCOL;
 
 #include "MaREST.h"
 
-#include <String.h>
+#include <string.h>
 
 
 
@@ -234,7 +234,7 @@ aREST rest = aREST();
 
 
 
-#include "elapsedMillis.h"
+#include "elapsedmillis.h"
 
 elapsedMillis timeElapsed; //declare global if you don't want it reset every time loop
 
@@ -626,7 +626,7 @@ float SolarPanelCurrent;
 // WXLink Support
 
 
-#include "Crc16.h"
+#include "crc16.h"
 
 //Crc 16 library (XModem)
 Crc16 crc;
