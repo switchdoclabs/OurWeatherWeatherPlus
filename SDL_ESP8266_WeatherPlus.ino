@@ -2148,7 +2148,7 @@ void loop() {
     RestDataString += String(as3935_LastLightningDistance) + ",";
     RestDataString += as3935_LastEvent + ",";
     RestDataString += as3935_LastEventTimeStamp + ",";
-    RestDataString += String(as3835_LightningCountSinceBootup);
+    RestDataString += String(as3835_LightningCountSinceBootup) + ",";
 
 
     if (timeElapsed300Seconds > 300000)   // 5 minutes
@@ -2182,7 +2182,8 @@ void loop() {
         rainCalendarDay = 0.0;
         startOfDayRain = rainTotal;
       }
-
+    RestDataString += String(rainCalendarDay, 2) + ",";
+    RestDataString += lastBootTimeString;
 
 
       bool dataStale;
