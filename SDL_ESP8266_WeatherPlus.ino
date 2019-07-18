@@ -6,27 +6,21 @@
 // edit in Atom 0549 06232019..xx
 //
 
+#include "constants.h"
 
-#define WEATHERPLUSESP8266VERSION "035"
-
+#define WEATHERPLUSESP8266VERSION "033"
 #define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER035"
 
 // define DEBUGPRINT to print out lots of debugging information for WeatherPlus.
 
 #undef DEBUGPRINT
-
 #undef PUBNUB_DEBUG
-
 #undef DEBUGBLYNK
-
 #define BLYNK_NO_BUILTIN
-
 #define BLYNK_PRINT Serial // Defines the object that is used for printing
 #undef BLYNK_DEBUG
 #define BLYNK_USE_128_VPINS
-
 #include <BlynkSimpleEsp8266.h>
-
 
 // Change this to undef if you don't have the OLED present
 #define OLED_Present
@@ -275,6 +269,9 @@ RtcDS3231 Rtc;
 float AM2315_Temperature;
 float AM2315_Humidity;
 float dewpoint;
+double heatIndex{};
+bool heatIndexValid{ false };
+String heatIndexLevel[4]{ "Caution", "Extreme caution", "Danger", "Extreme danger" };
 
 #include "SDL_ESP8266_HR_AM2315.h"
 
@@ -1409,12 +1406,19 @@ void setup() {
 
 } // end setup
 
-
+float calcHeatIndex(float AM2315_Humidity, float AM2315_Temperature) {
+	float heatIndex{};
+	heatIndex = constants::hIc1C + constants::hIc2C * AM2315_Temperature + constants::hIc3C * AM2315_Humidity + constants::hIc4C * AM2315_Temperature * AM2315_Humidity
+		+ constants::hIc5C * AM2315_Temperature * AM2315_Temperature * AM2315_Temperature + constants::hIc6C * AM2315_Humidity * AM2315_Humidity
+		+ constants::hIc7C * AM2315_Temperature * AM2315_Temperature * AM2315_Humidity + constants::hIc8C * AM2315_Temperature * AM2315_Humidity * AM2315_Humidity
+		+ constants::hIc9C * AM2315_Temperature * AM2315_Temperature * AM2315_Humidity * AM2315_Humidity;
+	return heatIndex;
+	}
 //
 //
-// loop()
-//
-//
+// loop() ***********************************************
+// ******************************************************
+// ******************************************************
 
 
 void loop() {
@@ -1503,6 +1507,10 @@ void loop() {
       AM2315_Temperature = dataAM2315[1];
       AM2315_Humidity = dataAM2315[0];
       dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
+	  if (AM2315_Temperature > 27) {
+		  heatIndex = calcHeatIndex(AM2315_Humidity, AM2315_Temperature);
+		  heatIndexValid = true;
+		  }
 
       Serial.print("Temp: "); Serial.println(AM2315_Temperature);
       Serial.print("Hum: "); Serial.println(AM2315_Humidity);
@@ -1858,7 +1866,10 @@ void loop() {
 
         // calculate dewpoint
         dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
-
+		if (AM2315_Temperature > 27) {
+			heatIndex = calcHeatIndex(AM2315_Humidity, AM2315_Temperature);
+			heatIndexValid = true;
+			}
 
         // set up solar status and message ID for screen
 
@@ -1890,21 +1901,9 @@ void loop() {
            Serial.println("");
         */
 
-
-
-
       }
 
-
-
-
     }
-
-
-
-
-
-
 
     Serial.print("windSpeedMin =");
     Serial.print(windSpeedMin);
@@ -1973,7 +1972,6 @@ void loop() {
     RestDataString += String(LoadVoltage, 2) + ",";
     RestDataString += String(LoadCurrent, 2) + ",";
 
-
     RestDataString += String(WXBatteryVoltage, 2) + ",";
     RestDataString += String(WXBatteryCurrent, 2) + ",";
     RestDataString += String(WXSolarPanelVoltage, 2) + ",";
@@ -1991,19 +1989,16 @@ void loop() {
     }
     invalidTemperatureFound = false;
 
-
     // Restart WiFi in case of connected, then lost connection
     if (WiFiPresent == true)
     {
       if (WiFi.status()  != WL_CONNECTED)
-
       {
         //Restart Access Point with the specified name
         WiFiManager wifiManager;
         wifiManager.setDebugOutput(true);
         Serial.println("--->Restarting Connection connect and setting");
         wifiManager.setTimeout(600);
-
 
         Serial.print("OurWeather IP Address:");
         Serial.println(myConnectedIp);
@@ -2013,9 +2008,7 @@ void loop() {
 
         Serial.print("OurWeather subnet Mask:");
         Serial.println(myConnectedMask);
-
         wifiManager.setSTAStaticIPConfig( myConnectedIp, myConnectedGateWay, myConnectedMask);
-
         //and goes into a blocking loop awaiting configuration
         if (!wifiManager.justConnect(APssid.c_str())) {
           Serial.println("->Restarting Connection but hit timeout");
@@ -2028,13 +2021,8 @@ void loop() {
           Serial.println("->Connection Restarted");
 
         }
-
-
-
       }
     }
-
-
     if (WXLastMessageGood == true)
     {
       RestDataString += "WXLMG ,";
@@ -2044,8 +2032,7 @@ void loop() {
       RestDataString += "WXLMB ,";
     }
 
-    RestDataString += String(pubNubEnabled) + ",";
-
+    RestDataString += String(pubNubEnabled) + ",";  // index # 34
 
     if (AS3935Present == true)
     {
@@ -2066,12 +2053,8 @@ void loop() {
       Serial.print("as3935 irqSource: ");
       Serial.println(irqSource, BIN);
 
-
-
-
       if (irqSource > 0)
       {
-
         printAS3935Registers();
         as3935_LastReturnIRQ = irqSource;
         // returned value is bitmap field, bit 0 - noise level too high, bit 2 - disturber detected, and finally bit 3 - lightning!
@@ -2079,7 +2062,6 @@ void loop() {
         {
           Serial.println("INT_NH Interrupt: Noise level too high, try adjusting noise floor");
           writeToBlynkStatusTerminal("ThunderBoard-Noise level too high");
-
           as3935_LastEvent = "Noise Level too high";
           RtcDateTime now = Rtc.GetDateTime();
           as3935_LastEventTimeStamp = returnDateTime(now);
@@ -2109,7 +2091,6 @@ void loop() {
           as3935_LastLightningDistance = strokeDistance;
           as3835_LightningCountSinceBootup++;
 
-
           Serial.print("INT_L Interrupt: Lightning Detected.  Stroke Distance:");
           Serial.print(strokeDistance);
           Serial.println(" km");
@@ -2124,13 +2105,8 @@ void loop() {
           delay(3000);
           updateDisplay(DISPLAY_LIGHTNING_DISPLAY);
           delay(3000);
-
-
-
-
         }
       }
-
     }
     //  Lightning REST variable
     as3935_FullString = "";
@@ -2140,7 +2116,6 @@ void loop() {
     as3935_FullString += as3935_LastEvent + ",";
     as3935_FullString += as3935_LastEventTimeStamp + ",";
     as3935_FullString += String(as3835_LightningCountSinceBootup);
-
 
     // Lighting Rest
     RestDataString += as3935_LastLightning + ",";
@@ -2153,8 +2128,6 @@ void loop() {
 
     if (timeElapsed300Seconds > 300000)   // 5 minutes
     {
-
-
       String lastBootTimeString;
       lastBootTimeString = returnDateTime(lastBoot);
 
@@ -2164,11 +2137,8 @@ void loop() {
       timeElapsed300Seconds = 0;
 
       // update rain
-
-
       add60MinuteRainReading(rainTotal - lastRain);
       lastRain = rainTotal;
-
       RtcDateTime now = Rtc.GetDateTime();
 
       if (now.Day() == lastDay)
@@ -2182,9 +2152,23 @@ void loop() {
         rainCalendarDay = 0.0;
         startOfDayRain = rainTotal;
       }
-    RestDataString += String(rainCalendarDay, 2) + ",";
-    RestDataString += lastBootTimeString;
-
+    RestDataString += String(rainCalendarDay, 2) + ","; // index # 41
+    RestDataString += lastBootTimeString + ","; // index # 42
+	RestDataString += String(heatIndex, 0) + ",";  // index # 43
+	RestDataString += String(heatIndexValid) + ","; // index  #44
+	if (heatIndex > 27 && heatIndex <= 32) {
+		RestDataString += heatIndexLevel[0] + ",";
+		}
+	else if (heatIndex > 32 && heatIndex <= 41) {
+		RestDataString += heatIndexLevel[1] + ",";
+		}
+	else if (heatIndex > 41 && heatIndex <= 54) {
+		RestDataString += heatIndexLevel[2] + ",";
+		}
+	else if (heatIndex > 54) {
+		RestDataString += heatIndexLevel[3] + ",";
+		}
+	else RestDataString += "  "; //  index # 45
 
       bool dataStale;
       dataStale = false;
