@@ -1406,10 +1406,10 @@ void setup() {
 
 } // end setup
 
-float calcHeatIndex(float AM2315_Humidity, float AM2315_Temperature) {
-	float heatIndex{};
+double calcHeatIndex(float AM2315_Humidity, float AM2315_Temperature) {
+	double heatIndex{};
 	heatIndex = constants::hIc1C + constants::hIc2C * AM2315_Temperature + constants::hIc3C * AM2315_Humidity + constants::hIc4C * AM2315_Temperature * AM2315_Humidity
-		+ constants::hIc5C * AM2315_Temperature * AM2315_Temperature * AM2315_Temperature + constants::hIc6C * AM2315_Humidity * AM2315_Humidity
+		+ constants::hIc5C * AM2315_Temperature * AM2315_Temperature + constants::hIc6C * AM2315_Humidity * AM2315_Humidity
 		+ constants::hIc7C * AM2315_Temperature * AM2315_Temperature * AM2315_Humidity + constants::hIc8C * AM2315_Temperature * AM2315_Humidity * AM2315_Humidity
 		+ constants::hIc9C * AM2315_Temperature * AM2315_Temperature * AM2315_Humidity * AM2315_Humidity;
 	return heatIndex;
