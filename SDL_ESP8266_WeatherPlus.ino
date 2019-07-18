@@ -251,7 +251,7 @@ float AM2315_Humidity;
 float dewpoint;
 double heatIndex{};
 bool heatIndexValid{ false };
-String heatIndexLevel[4]{ "Caution", "Extreme caution", "Danger", "Extreme danger", "not defined" };
+String heatIndexLevel[5]{ "Caution", "Extreme caution", "Danger", "Extreme danger", "not defined" };
 
 #include "SDL_ESP8266_HR_AM2315.h"
 
