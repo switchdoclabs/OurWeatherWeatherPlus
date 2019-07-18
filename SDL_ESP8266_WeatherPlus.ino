@@ -132,13 +132,6 @@ String getValue(String data, char separator, int index)
 char channel1[]  = "OWIOT1";
 char uuid[]   = WEATHERPLUSPUBNUBPROTOCOL;
 
-
-
-
-
-
-
-
 #include <Wire.h>
 
 #include <Arduino.h> //needed for Serial.println
@@ -150,10 +143,6 @@ char uuid[]   = WEATHERPLUSPUBNUBPROTOCOL;
 #include "MaREST.h"
 
 #include <string.h>
-
-
-
-
 
 // display modes
 #define DISPLAY_POWERUP 0
@@ -190,14 +179,8 @@ String RestTimeStamp;
 String RestDataString;
 String Version;
 
-
-
-
-
-
 //----------------------------------------------------------------------
 //Local WiFi
-
 
 int WiFiSetupFlag = 0;
 
@@ -224,9 +207,6 @@ int blinkPin = 0;                // pin to blink led at each reading
 aREST rest = aREST();
 // commands are functions that get called by the webserver framework
 // they can read any posted data from client, and they output to server
-
-
-
 
 #include "elapsedmillis.h"
 
@@ -271,10 +251,9 @@ float AM2315_Humidity;
 float dewpoint;
 double heatIndex{};
 bool heatIndexValid{ false };
-String heatIndexLevel[4]{ "Caution", "Extreme caution", "Danger", "Extreme danger" };
+String heatIndexLevel[4]{ "Caution", "Extreme caution", "Danger", "Extreme danger", "not defined" };
 
 #include "SDL_ESP8266_HR_AM2315.h"
-
 
 SDL_ESP8266_HR_AM2315 am2315;
 float dataAM2315[2];  //Array to hold data returned by sensor.  [0,1] => [Humidity, Temperature]
@@ -290,7 +269,6 @@ const char *monthName[12] = {
 
 // ThunderBoard AS3935 from SwitchDoc Labs
 AS3935 as3935(0x02, 3);
-
 
 // lightning state variables as3935
 
@@ -388,16 +366,7 @@ void setAS3935Parameters()
 
   as3935.setTuningCapacitor(as3935_TuneCap);   // set to 1/2 - middle - you can calibrate on an Arduino UNO and use the value from there (pf/8)
 
-
-
-
-
-
-
-
   // lightning state variables as3935
-
-
 
   // first let's turn on disturber indication and print some register values from AS3935
   // tell AS3935 we are indoors, for outdoors use setOutdoors() function
@@ -432,7 +401,6 @@ void setAS3935Parameters()
 
   uint16_t getWatchdogThreshold(void);
   uint16_t setWatchdogThreshold(uint16_t wdth);
-
 
   as3935.setSpikeRejection(as3935_SpikeDetection);
   as3935.setWatchdogThreshold(as3935_WatchdogThreshold);
@@ -504,11 +472,6 @@ SDL_RasPiGraphLibrary windDirectionGraph(10, SDL_MODE_LABELS);
 char windSpeedBuffer[150];  // wind speed graph
 char windGustBuffer[150];  // wind speed graph
 char windDirectionBuffer[150];  // wind speed graph
-
-
-
-
-
 // WeatherRack
 
 // LED connected to digital GPIO 0
@@ -1511,6 +1474,10 @@ void loop() {
 		  heatIndex = calcHeatIndex(AM2315_Humidity, AM2315_Temperature);
 		  heatIndexValid = true;
 		  }
+	  else {
+		  heatIndex = 0;
+		  heatIndexValid = false;
+		  }
 
       Serial.print("Temp: "); Serial.println(AM2315_Temperature);
       Serial.print("Hum: "); Serial.println(AM2315_Humidity);
@@ -1870,6 +1837,10 @@ void loop() {
 			heatIndex = calcHeatIndex(AM2315_Humidity, AM2315_Temperature);
 			heatIndexValid = true;
 			}
+		else {
+			heatIndex = 0;
+			heatIndexValid = false;
+			}
 
         // set up solar status and message ID for screen
 
@@ -2123,7 +2094,7 @@ void loop() {
     RestDataString += String(as3935_LastLightningDistance) + ",";
     RestDataString += as3935_LastEvent + ",";
     RestDataString += as3935_LastEventTimeStamp + ",";
-    RestDataString += String(as3835_LightningCountSinceBootup) + ",";
+    RestDataString += String(as3835_LightningCountSinceBootup) + ","; // index # 40
 
 
     if (timeElapsed300Seconds > 300000)   // 5 minutes
@@ -2156,7 +2127,10 @@ void loop() {
     RestDataString += lastBootTimeString + ","; // index # 42
 	RestDataString += String(heatIndex, 0) + ",";  // index # 43
 	RestDataString += String(heatIndexValid) + ","; // index  #44
-	if (heatIndex > 27 && heatIndex <= 32) {
+	if (heatIndex <= 27) {
+		RestDataString += heatIndexLevel[4] + ",";
+		}
+	else if (heatIndex > 27 && heatIndex <= 32) {
 		RestDataString += heatIndexLevel[0] + ",";
 		}
 	else if (heatIndex > 32 && heatIndex <= 41) {
@@ -2168,7 +2142,7 @@ void loop() {
 	else if (heatIndex > 54) {
 		RestDataString += heatIndexLevel[3] + ",";
 		}
-	else RestDataString += "  "; //  index # 45
+	else RestDataString += " unknown "; //  index # 45
 
       bool dataStale;
       dataStale = false;
