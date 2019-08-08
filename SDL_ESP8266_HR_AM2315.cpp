@@ -134,7 +134,7 @@ boolean SDL_ESP8266_HR_AM2315::readData(float *dataArray)
     dataArray[1] = lastGoodTemp;
     oldDataReads++;
 
-    return true;
+    return false;
   }  // end of Not GOODREAD clause
 
   // ah, good reads

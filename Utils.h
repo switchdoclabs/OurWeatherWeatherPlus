@@ -464,9 +464,31 @@ void updateAllWeatherVariables()
 
   heapSize = ESP.getFreeHeap();
 
+  if (AM2315_Present)
+  {
+
   AOK = am2315.readData(dataAM2315);
   AM2315_Temperature = dataAM2315[1];
   AM2315_Humidity = dataAM2315[0];
+  }
+
+  if (SHT30_Present)
+  {
+          int sht30_success;
+          sht30_success = sht30.get();
+          Serial.print("sht30_success=");
+          Serial.println(sht30_success);
+          if (sht30_success == 0)
+          {
+
+            // Now set the old AM2315 variables
+            
+            AM2315_Temperature = sht30.cTemp;
+            AM2315_Humidity = sht30.humidity;
+            dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
+          }
+    
+  }
 
   if (BMP180Found)
   {
