@@ -53,7 +53,7 @@ bool WiFiPresent = false;
 
 //needed for library
 #include <DNSServer.h>
-#include <ESP8266WebServer.h>
+#include <ESPWebServer.h>
 
 
 
