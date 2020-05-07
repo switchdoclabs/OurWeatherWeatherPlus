@@ -1522,10 +1522,6 @@ void loop() {
     Serial.println("5 second Loop executed");
 
 
-
-
-
-
     timeElapsed = 0;
 
     Serial.print("Free heap on ESP8266:");
