@@ -485,7 +485,7 @@ void updateAllWeatherVariables()
             
             AM2315_Temperature = sht30.cTemp;
             AM2315_Humidity = sht30.humidity;
-            dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
+            AM2315_Dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
           }
     
   }
