@@ -38,17 +38,13 @@ int sendWeatherUndergroundData()
 
   myURL += "&humidity=" + String(AM2315_Humidity);
   myURL += "&tempf=" + String((AM2315_Temperature * 9.0 / 5.0) + 32.0);
-<<<<<<< Updated upstream
   
   myURL += "&dewptf=" + String((AM2315_Dewpoint * 9.0 / 5.0) + 32.0);
-=======
 
   myURL += "&dewptf=" + String((AM2315_Dewpoint * 9.0 / 5.0) + 32.0);
->>>>>>> Stashed changes
 
   myURL += "&rainin=" + String((rain60Minutes) / 25.4);
   myURL += "&dailyrainin=" + String(( rainCalendarDay) / 25.4);
-
  
   myURL += "&baromin=" + String((BMP180_Pressure / 1000.0) * 0.2953, 4);
 
@@ -56,10 +52,6 @@ int sendWeatherUndergroundData()
   //myURL += "&indoorhumidity%0.2f=" % HTUhumidity
 
   myURL += "&software=OurWeather";
-
-
-
-
 
   Serial.print("Requesting URL: ");
   Serial.println(myURL);

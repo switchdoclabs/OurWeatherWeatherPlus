@@ -54,7 +54,7 @@ bool WiFiPresent = false;
 //needed for library
 #include <DNSServer.h>
 // #include <ESP8266WebServer.h>  //  This library is superceded by ESPWebServer.h
-#include <ESP8266WebServer.h>
+#include <ESPWebServer.h>
 
 
 #include "WiFiManager.h"          //https://github.com/tzapu/WiFiManager
