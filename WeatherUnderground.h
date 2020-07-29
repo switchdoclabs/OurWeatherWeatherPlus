@@ -40,7 +40,7 @@ int sendWeatherUndergroundData()
   myURL += "&tempf=" + String((AM2315_Temperature * 9.0 / 5.0) + 32.0);
 <<<<<<< Updated upstream
   
-  myURL += "&dewptf=" + String((dewpoint * 9.0 / 5.0) + 32.0);
+  myURL += "&dewptf=" + String((AM2315_Dewpoint * 9.0 / 5.0) + 32.0);
 =======
 
   myURL += "&dewptf=" + String((AM2315_Dewpoint * 9.0 / 5.0) + 32.0);
@@ -98,4 +98,3 @@ String WUResult;
 
 
 }
-

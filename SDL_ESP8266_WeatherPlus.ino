@@ -4,10 +4,10 @@
 //
 
 //
-//
+// Updated AM2315 variable name from dewpoint to AM2315_Dewpoint 
 
 
-#define WEATHERPLUSESP8266VERSION "036"
+#define WEATHERPLUSESP8266VERSION "036a"
 
 #define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER036"
 
@@ -26,6 +26,7 @@
 #define BLYNK_USE_128_VPINS
 
 #include <BlynkSimpleEsp8266.h>
+
 
 // Change this to undef if you don't have the OLED present
 #define OLED_Present
@@ -52,13 +53,14 @@ bool WiFiPresent = false;
 
 //needed for library
 #include <DNSServer.h>
-#include <ESPWebServer.h>
-
+// #include <ESP8266WebServer.h>  //  This library is superceded by ESPWebServer.h
+#include <ESP8266WebServer.h>
 
 
 #include "WiFiManager.h"          //https://github.com/tzapu/WiFiManager
 
 //gets called when WiFiManager enters configuration mode
+
 
 //void configModeCallback (WiFiManager *myWiFiManager)
 void configModeCallback ()
@@ -72,12 +74,9 @@ void configModeCallback ()
 
 // OTA updated
 #include <ESP8266WiFiMulti.h>
-<<<<<<< Updated upstream
 
 
 
-=======
->>>>>>> Stashed changes
 #include <ESP8266HTTPClient.h>
 #include <ESP8266httpUpdate.h>
 
@@ -139,7 +138,6 @@ String getValue(String data, char separator, int index)
 char channel1[]  = "OWIOT1";
 char uuid[]   = WEATHERPLUSPUBNUBPROTOCOL;
 
-<<<<<<< Updated upstream
 
 
 
@@ -147,8 +145,6 @@ char uuid[]   = WEATHERPLUSPUBNUBPROTOCOL;
 
 
 
-=======
->>>>>>> Stashed changes
 #include <Wire.h>
 
 #include <Arduino.h> //needed for Serial.println
@@ -225,11 +221,6 @@ IPAddress myConnectedMask;
 
 //----------------------------------------------------------------------
 
-// !!!!!!!!!!!!!!!!!!!!!!!!
-// DEBUG !!!
-// Am using pin #0 on the board to short out with ground to put the device into programming mode to upload code.
-// This is very likely what may  be causing the issue when the software is checking for activity, it thinks Blynk is active.
-// was set to 0 (zero).  Change to GPIO #4 D2
 
 int blinkPin = 0;                // pin to blink led at each reading
 // Create an instance of the server
@@ -251,14 +242,7 @@ elapsedMillis timeElapsed300Seconds; //declare global if you don't want it reset
 
 // BMP180 / BMP280 Sensor
 // Both are stored in BMP180 variables
-<<<<<<< Updated upstream
 //
-=======
-// OurWeather board has a built-in BMP280 Barometer
-
-#include "MAdafruit_BMP085.h"
-Adafruit_BMP085 bmp;
->>>>>>> Stashed changes
 
 #include "MAdafruit_BMP280.h"
 #include "MAdafruit_BMP085.h"
@@ -273,17 +257,12 @@ float BMP180_Altitude;
 
 bool BMP180Found;
 bool BMP280Found;
-// ---------------------------------------------------------------
 
 
 int EnglishOrMetric;   // 0 = English units, 1 = Metric
 
 int WeatherDisplayMode;
 
-<<<<<<< Updated upstream
-=======
-// ---------------------------------------------------------------
->>>>>>> Stashed changes
 // DS3231 Library functions
 
 #include "RtcDS3231.h"
@@ -291,24 +270,23 @@ int WeatherDisplayMode;
 RtcDS3231 Rtc;
 
 // ---------------------------------------------------------------
-
-// AM2315
+// AM2315 Temp / Humidity
 
 float AM2315_Temperature;
 float AM2315_Humidity;
-float AM2315_Dewpoint;  //  dewpoint
+float AM2315_Dewpoint;
 
 bool AM2315_Present = false;
 
 #include "SDL_ESP8266_HR_AM2315.h"
-
 
 SDL_ESP8266_HR_AM2315 am2315;
 float dataAM2315[2];  //Array to hold data returned by sensor.  [0,1] => [Humidity, Temperature]
 
 boolean AOK;  // 1=successful read
 
-// SHT30
+// ---------------------------------------------------------------
+// SHT30 Temp
 #include "WEMOS_SHT3X.h"
 
 SHT3X sht30(0x44);
@@ -1970,7 +1948,7 @@ void loop() {
         AM2315_Temperature = validateTemperature(convert4BytesToFloat(buffer, 25));
         AM2315_Humidity = convert4BytesToFloat(buffer, 29);
 
-        // calculate dewpoint
+        // calculate AM2315_Dewpoint
         AM2315_Dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
 
 
