@@ -14,7 +14,7 @@
 #define WiFiManager_h
 
 #include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
+#include <ESPWebServer.h>
 #include <DNSServer.h>
 #include <memory>
 #undef min
@@ -42,7 +42,7 @@ void writeEEPROMState();
 void updateDisplay(int displayType);
 /*
 const char HTTP_200[] PROGMEM = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
-const char HTTP_HEAD[] PROGMEM = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>{v}</title>";
+const char HTTP_HEADER_START[] PROGMEM = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>{v}</title>";
 const char HTTP_STYLE[] PROGMEM = "<style>div,input{padding:5px;font-size:1em;} input{width:95%;} body{text-align: center;} button{border:0;border-radius:0.3rem;background-color:#1fa3ec;color:#fff;line-height:2.4rem;font-size:1.2rem;width:100%;}</style>";
 const char HTTP_SCRIPT[] PROGMEM = "<script>function c(l){document.getElementById('s').value=l.innerText||l.textContent;document.getElementById('p').focus();}</script>";
 const char HTTP_HEAD_END[] PROGMEM = "</head><body><div style='text-align: left; display: inline-block;'>";
@@ -57,10 +57,10 @@ const char HTTP_END[] PROGMEM = "</div></body></html>";
 
 
 const char HTTP_200[] PROGMEM             = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
-const char HTTP_HEAD[] PROGMEM            = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/><title>{v}</title>";
+const char HTTP_HEADER_START[] PROGMEM            = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1, user-scalable=no\"/><title>{v}</title>";
 const char HTTP_STYLE[] PROGMEM           = "<style>.c{text-align: center;} div,input{padding:5px;font-size:1em;} input{width:95%;} body{text-align: center;font-family:verdana;} button{border:0;border-radius:0.3rem;background-color:#1fa3ec;color:#fff;line-height:2.4rem;font-size:1.2rem;width:100%;} .q{float: right;width: 64px;text-align: right;} .l{background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAMAAABEpIrGAAAALVBMVEX///8EBwfBwsLw8PAzNjaCg4NTVVUjJiZDRUUUFxdiZGSho6OSk5Pg4eFydHTCjaf3AAAAZElEQVQ4je2NSw7AIAhEBamKn97/uMXEGBvozkWb9C2Zx4xzWykBhFAeYp9gkLyZE0zIMno9n4g19hmdY39scwqVkOXaxph0ZCXQcqxSpgQpONa59wkRDOL93eAXvimwlbPbwwVAegLS1HGfZAAAAABJRU5ErkJggg==\") no-repeat left center;background-size: 1em;}</style>";
 const char HTTP_SCRIPT[] PROGMEM          = "<script>function c(l){document.getElementById('s').value=l.innerText||l.textContent;document.getElementById('p').focus();}</script>";
-const char HTTP_HEAD_END[] PROGMEM        = "</head><body><div style='text-align:left;display:inline-block;min-width:260px;'>";
+const char HTTP_HEADER_END[] PROGMEM        = "</head><body><div style='text-align:left;display:inline-block;min-width:260px;'>";
 //const char HTTP_PORTAL_OPTIONS[] PROGMEM = "SwitchDoc Labs OurWeather<BR><form action=\"wifi\" method=\"get\"><button>Configure WiFi</button></form><br/><form action=\"0wifi\" method=\"get\"><button>Configure WiFi (No Scan)</button></form>";
 const char HTTP_PORTAL_OPTIONS[] PROGMEM = "SwitchDoc Labs OurWeather<BR><form action=\"wifi\" method=\"get\"><button>Configure WiFi</button></form>";
 //const char HTTP_PORTAL_OPTIONS[] PROGMEM  = "<form action=\"/wifi\" method=\"get\"><button>Configure WiFi</button></form><br/><form action=\"/0wifi\" method=\"get\"><button>Configure WiFi (No Scan)</button></form><br/><form action=\"/i\" method=\"get\"><button>Info</button></form><br/><form action=\"/r\" method=\"post\"><button>Reset</button></form>";
@@ -158,12 +158,12 @@ class WiFiManager
 
   private:
     std::unique_ptr<DNSServer>        dnsServer;
-    std::unique_ptr<ESP8266WebServer> server;
+    std::unique_ptr<ESPWebServer> server;
 
     //const int     WM_DONE                 = 0;
     //const int     WM_WAIT                 = 10;
 
-    //const String  HTTP_HEAD = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>{v}</title>";
+    //const String  HTTP_HEADER_START = "<!DOCTYPE html><html lang=\"en\"><head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><title>{v}</title>";
 
     void          setupConfigPortal();
     #ifdef NO_EXTRA_4K_HEAP
@@ -203,6 +203,7 @@ class WiFiManager
     //void          setEEPROMString(int start, int len, String string);
 
     int           status = WL_IDLE_STATUS;
+    String        statusStr(int status);
     int           connectWifi(String ssid, String pass);
     uint8_t       waitForConnectResult();
 

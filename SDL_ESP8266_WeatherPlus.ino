@@ -4,10 +4,10 @@
 //
 
 //
-//
+// Updated AM2315 variable name from dewpoint to AM2315_Dewpoint 
 
 
-#define WEATHERPLUSESP8266VERSION "036"
+#define WEATHERPLUSESP8266VERSION "036a"
 
 #define WEATHERPLUSPUBNUBPROTOCOL "OURWEATHER036"
 
@@ -53,8 +53,8 @@ bool WiFiPresent = false;
 
 //needed for library
 #include <DNSServer.h>
-#include <ESP8266WebServer.h>
-
+// #include <ESP8266WebServer.h>  //  This library is superceded by ESPWebServer.h
+#include <ESPWebServer.h>
 
 
 #include "WiFiManager.h"          //https://github.com/tzapu/WiFiManager
@@ -269,24 +269,24 @@ int WeatherDisplayMode;
 
 RtcDS3231 Rtc;
 
-
-// AM2315
+// ---------------------------------------------------------------
+// AM2315 Temp / Humidity
 
 float AM2315_Temperature;
 float AM2315_Humidity;
-float dewpoint;
+float AM2315_Dewpoint;
 
 bool AM2315_Present = false;
 
 #include "SDL_ESP8266_HR_AM2315.h"
-
 
 SDL_ESP8266_HR_AM2315 am2315;
 float dataAM2315[2];  //Array to hold data returned by sensor.  [0,1] => [Humidity, Temperature]
 
 boolean AOK;  // 1=successful read
 
-// SHT30
+// ---------------------------------------------------------------
+// SHT30 Temp
 #include "WEMOS_SHT3X.h"
 
 SHT3X sht30(0x44);
@@ -1275,7 +1275,7 @@ void setup() {
 
     AM2315_Temperature = dataAM2315[1];
     AM2315_Humidity = dataAM2315[0];
-    dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
+    AM2315_Dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
     AM2315_Present = true;
 
   }
@@ -1290,7 +1290,7 @@ void setup() {
   AM2315_Temperature = 0.0;
 
   AM2315_Humidity = 0.0;
-  dewpoint = 0.0;
+  AM2315_Dewpoint = 0.0;
 
   // Check for SHT30
   int sht30_success;
@@ -1566,11 +1566,11 @@ void loop() {
 #endif
         AM2315_Temperature = dataAM2315[1];
         AM2315_Humidity = dataAM2315[0];
-        dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
+        AM2315_Dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
 
         Serial.print("Temp: "); Serial.println(AM2315_Temperature);
         Serial.print("Hum: "); Serial.println(AM2315_Humidity);
-        Serial.print("DwPt: "); Serial.println(dewpoint);
+        Serial.print("DwPt: "); Serial.println(AM2315_Dewpoint);
 #ifdef DEBUGPRINT
         am2315.printStatistics();
 #endif
@@ -1597,7 +1597,7 @@ void loop() {
 
             AM2315_Temperature = sht30.cTemp;
             AM2315_Humidity = sht30.humidity;
-            dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
+            AM2315_Dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
           }
 
         }
@@ -1948,8 +1948,8 @@ void loop() {
         AM2315_Temperature = validateTemperature(convert4BytesToFloat(buffer, 25));
         AM2315_Humidity = convert4BytesToFloat(buffer, 29);
 
-        // calculate dewpoint
-        dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
+        // calculate AM2315_Dewpoint
+        AM2315_Dewpoint =  AM2315_Temperature - ((100.0 - AM2315_Humidity) / 5.0);
 
 
         // set up solar status and message ID for screen

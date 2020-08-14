@@ -80,6 +80,41 @@ void WiFiManager::blinkLED(int timesToBlink, int delayBetweenBlinks)
 WiFiManager::WiFiManager() {
 }
 
+String WiFiManager::statusStr(int wStatus) {
+    // output WiFi.status() as one of the known status values in a readable text format
+    String connResTxt = "";
+    switch (wStatus) {
+      case 255: 
+        connResTxt = "[255] WL_NO_SHIELD";
+        break;
+      case 0: 
+        connResTxt = "[0] WL_IDLE_STATUS";
+        break;
+      case 1: 
+        connResTxt = "[1] WL_NO_SSID_AVAIL";
+        break;
+      case 2: 
+        connResTxt = "[2] WL_SCAN_COMPLETED";
+        break;
+      case 3: 
+        connResTxt = "[3] WL_CONNECTED";
+        break;
+      case 4: 
+        connResTxt = "[4] WL_CONNECT_FAILED";
+        break;
+      case 5: 
+        connResTxt = "[5] WL_CONNECTION_LOST";
+        break;
+      case 6: 
+        connResTxt = "[6] WL_DISCONNECTED";
+        break;
+      default: 
+        connResTxt = wStatus;
+        break;
+    }
+  return connResTxt;
+}
+
 void WiFiManager::addParameter(WiFiManagerParameter *p) {
   _params[_paramsCount] = p;
   _paramsCount++;
@@ -89,7 +124,7 @@ void WiFiManager::addParameter(WiFiManagerParameter *p) {
 
 void WiFiManager::setupConfigPortal() {
   dnsServer.reset(new DNSServer());
-  server.reset(new ESP8266WebServer(80));
+  server.reset(new ESPWebServer(80));
 
   DEBUG_WM(F(""));
   _configPortalStart = millis();
@@ -334,7 +369,9 @@ int WiFiManager::connectWifi(String ssid, String pass) {
 
   int connRes = waitForConnectResult();
   DEBUG_WM ("Connection result: ");
-  DEBUG_WM ( connRes );
+  //  AHD 4/30/2020 - Updated to display code and description title for WiFi.status() with new WiFi.statusStr(status) 
+  DEBUG_WM (statusStr(connRes));
+  // DEBUG_WM ( connRes );
   #ifdef NO_EXTRA_4K_HEAP
   //not connected, WPS enabled, no pass - first attempt
   if (_tryWPS && connRes != WL_CONNECTED && pass == "") {
@@ -359,6 +396,7 @@ uint8_t WiFiManager::waitForConnectResult() {
       if (millis() > start + _connectTimeout) {
         keepConnecting = false;
         DEBUG_WM (F("Connection timed out"));
+		DEBUG_WM ("WiFi.status = " + statusStr(WiFi.status()));
       }
       if (status == WL_CONNECTED || status == WL_CONNECT_FAILED) {
         keepConnecting = false;
@@ -448,12 +486,12 @@ void WiFiManager::handleRoot() {
     return;
   }
 
-  String page = FPSTR(HTTP_HEAD);
+  String page = FPSTR(HTTP_HEADER_START);
   page.replace("{v}", "Options");
   page += FPSTR(HTTP_SCRIPT);
   page += FPSTR(HTTP_STYLE);
   page += _customHeadElement;
-  page += FPSTR(HTTP_HEAD_END);
+  page += FPSTR(HTTP_HEADER_END);
   page += "<h1>";
   page += _apName;
   page += "</h1>";
@@ -468,12 +506,12 @@ void WiFiManager::handleRoot() {
 /** Wifi config page handler */
 void WiFiManager::handleWifi(boolean scan) {
 
-  String page = FPSTR(HTTP_HEAD);
+  String page = FPSTR(HTTP_HEADER_START);
   page.replace("{v}", "Config OurWeather");
   page += FPSTR(HTTP_SCRIPT);
   page += FPSTR(HTTP_STYLE);
   page += _customHeadElement;
-  page += FPSTR(HTTP_HEAD_END);
+  page += FPSTR(HTTP_HEADER_END);
 
   if (scan) {
     int n = WiFi.scanNetworks();
@@ -690,12 +728,12 @@ void WiFiManager::handleWifiSave() {
   }
   else
     DEBUG_WM("Not updating DateTime in RTC");
-  String page = FPSTR(HTTP_HEAD);
+  String page = FPSTR(HTTP_HEADER_START);
   page.replace("{v}", "Credentials Saved");
   page += FPSTR(HTTP_SCRIPT);
   page += FPSTR(HTTP_STYLE);
   page += _customHeadElement;
-  page += FPSTR(HTTP_HEAD_END);
+  page += FPSTR(HTTP_HEADER_END);
   page += FPSTR(HTTP_SAVED);
   page += FPSTR(HTTP_END);
 
@@ -710,12 +748,12 @@ void WiFiManager::handleWifiSave() {
 void WiFiManager::handleInfo() {
   DEBUG_WM(F("Info"));
 
-  String page = FPSTR(HTTP_HEAD);
+  String page = FPSTR(HTTP_HEADER_START);
   page.replace("{v}", "Info");
   page += FPSTR(HTTP_SCRIPT);
   page += FPSTR(HTTP_STYLE);
   page += _customHeadElement;
-  page += FPSTR(HTTP_HEAD_END);
+  page += FPSTR(HTTP_HEADER_END);
   page += F("<dl>");
   page += F("<dt>Chip ID</dt><dd>");
   page += ESP.getChipId();
@@ -750,12 +788,12 @@ void WiFiManager::handleInfo() {
 void WiFiManager::handleReset() {
   DEBUG_WM(F("Reset"));
 
-  String page = FPSTR(HTTP_HEAD);
+  String page = FPSTR(HTTP_HEADER_START);
   page.replace("{v}", "Info");
   page += FPSTR(HTTP_SCRIPT);
   page += FPSTR(HTTP_STYLE);
   page += _customHeadElement;
-  page += FPSTR(HTTP_HEAD_END);
+  page += FPSTR(HTTP_HEADER_END);
   page += F("Module will reset in a few seconds.");
   page += FPSTR(HTTP_END);
   server->send(200, "text/html", page);
